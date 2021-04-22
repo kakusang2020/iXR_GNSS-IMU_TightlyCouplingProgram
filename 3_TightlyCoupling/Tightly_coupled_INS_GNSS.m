@@ -124,8 +124,9 @@ IMUData(:,4) = -IMUData_(:,4);
 IMUData(:,6) = IMUData_(:,5);
 IMUData(:,5) = IMUData_(:,6);
 %IMUData(:,3) = IMUData_(:,2);
-
+IMUData(:,5:7) = IMUData(:,5:7) ;
 IMU = IMUData;
+plotEuler(IMU);
 [no_epochs,~]=size(IMU);
 c = 299792458;
 GM = 3.986005000000000e+14;

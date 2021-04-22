@@ -7,8 +7,8 @@ addpath('..\lib');
 % gyroReading_ = csvread('imu1105.csv');
 % gyroReading = gyroReading_(:,5:7) .* pi/180;
 gyroReading_ = csvread('g370_0412.csv');
-%gyroReading = -(gyroReading_(:,2:4) - mean(gyroReading_(1:4000,2:4))) .* pi/180;
-gyroReading = -(gyroReading_(:,2:4) ) .* pi/180;
+gyroReading = -(gyroReading_(:,2:4) - mean(gyroReading_(1:4000,2:4))) .* pi/180;
+% gyroReading = -(gyroReading_(:,2:4) ) .* pi/180;
 gyroReading(:,3) = -gyroReading(:,3);
 dt = 0.02; %Attitude update cycle: 0.01s = 100Hz
 N = length(gyroReading); % Total data volume

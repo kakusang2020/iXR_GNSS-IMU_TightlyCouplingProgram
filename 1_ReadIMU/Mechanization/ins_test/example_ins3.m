@@ -5,9 +5,9 @@ addpath('..\lib');
 %% Read IMU
 %load hi226_static_30s.mat
 gyroReading_ = csvread('estelle_0412.csv');
-gyroReading_(:,7) = gyroReading_(:,7) -  mean(gyroReading_(1500:4000,7)) + 9.7978;% g bias
-gyroReading_(1500:4000,2:6) = gyroReading_(1500:4000,2:6) - mean(gyroReading_(1500:4000,2:6));
-gyr = gyroReading_(1500:4000,2:4);
+gyroReading_(:,7) = gyroReading_(:,7) -  mean(gyroReading_(1500:4000,7)) - 9.7978;% g bias
+gyroReading_(:,2:6) = gyroReading_(:,2:6) - mean(gyroReading_(1500:4000,2:6));
+gyr = gyroReading_(1500:4000,2:4) .* pi / 180;
 acc = gyroReading_(1500:4000,5:7);
 
 Fs = 50; 
@@ -27,7 +27,7 @@ q= [1 0 0 0]';
 
 
 for i=1:N
-    [p ,v , q] = ch_nav_equ_local_tan(p, v, q, acc(i,:)', gyr(i,:)', 1 / Fs, [0, 0, -9.7978]');
+    [p ,v , q] = ch_nav_equ_local_tan(p, v, q, acc(i,:)', gyr(i,:)', 1 / Fs, [0, 0, 9.7978]');
     pos(i,:) = p;
     vel(i,:) = v;
 end

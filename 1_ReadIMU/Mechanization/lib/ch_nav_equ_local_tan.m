@@ -21,9 +21,15 @@ sf = ch_qmulv(q, sf);
 sf = sf + gN;
 v = old_v + dt *sf;
 
+% sf = [wheel;0;0];
+% sf = ch_qmulv(q, sf);
+% 
+% v = dt *sf;
+
 
 %  position
 p = p + (old_v + v) *dt/2;
+% p = p + v * dt;
 
 end
 

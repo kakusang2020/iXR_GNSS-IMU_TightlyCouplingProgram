@@ -1,11 +1,11 @@
 
 function out = ch_att_upt(in, gyr, dt)
 
-%% 单子样旋转矢量
+%% Single sample rotation vector
  rv = gyr*dt;
  dq = ch_rv2q(rv);
 
-%% 不专业的做法
+%% 
 %                  dq(1) = 1;
 %                  dq(2) = rv(1)*0.5;
 %                  dq(3) = rv(2)*0.5;
@@ -14,7 +14,7 @@ function out = ch_att_upt(in, gyr, dt)
  out = ch_qmul(in, dq);
  out = ch_qnormlz(out);
 
- %% 使用旋转矩阵更新
+ %% Update with rotation matrix
 % 
 %  Cb2n = ch_q2m(in);
 %  theta = gyr*dt;
@@ -24,7 +24,7 @@ function out = ch_att_upt(in, gyr, dt)
 % 
 % Cb2n = Cb2n * C;
 % 
-% % 截断误差，保持正交化 GNSS与惯性及多传感器组合导航系统原理-第二版.pdf 公式 5.80
+% % truncation error 5.80
 % c1 = Cb2n(1,:);
 % c2 = Cb2n(2,:);
 % c3 = Cb2n(3,:);

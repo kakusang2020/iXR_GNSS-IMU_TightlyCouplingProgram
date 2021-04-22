@@ -6,11 +6,11 @@ addpath('..\lib');
 %%
 Fs = 100;
 N = Fs*10;
-dataimu = csvread('imu1105.csv');
+dataimu = csvread('g370_0412.csv');
 % gyr = [0.1, 0.2, 0.3];
 % acc = [0, 0, 1];
-gyr = dataimu(1:7000,5:7);
-acc = dataimu(1:7000,2:4);
+gyr = dataimu(:,5:7);
+acc = dataimu(:,2:4);
 %acc = acc * 9.795;
 %gyr = deg2rad(gyr);
 
