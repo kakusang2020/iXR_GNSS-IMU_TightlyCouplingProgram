@@ -117,17 +117,20 @@ STA.STA(1).Coor(1:3) = [-3961904.939,3348993.763,3698211.764];
 load(FilePath.GNSSFile);
 load(FilePath.INSFile);
 GNSSObs = GNSSTCData;
+no_epochs = 42500;%only for 2020/11/05 data
+% R-F-D to F-R-D 
 IMUData_ = IMUData;
+IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:3000,2:7)); %remove bias
 IMUData(:,3) = IMUData_(:,2);
 IMUData(:,2) = IMUData_(:,3);
-IMUData(:,4) = -IMUData_(:,4);
+IMUData(:,4) = -IMUData_(:,4) -9.7978;
 IMUData(:,6) = IMUData_(:,5);
 IMUData(:,5) = IMUData_(:,6);
-%IMUData(:,3) = IMUData_(:,2);
-IMUData(:,5:7) = IMUData(:,5:7) ;
+IMUData(:,7) = -IMUData(:,7) ;
 IMU = IMUData;
-plotEuler(IMU);
+plotEuler(IMU(1:no_epochs,:));
 [no_epochs,~]=size(IMU);
+no_epochs = 42500;%only for 2020/11/05 data
 c = 299792458;
 GM = 3.986005000000000e+14;
 
@@ -240,7 +243,7 @@ for epoch = 2:no_epochs
         meas_omega_ib_b);
 
     % Determine whether to update GNSS observation and run Kalman filter
-    if (time - time_last_GNSS) >= GNSS_config.epoch_interval
+    if (time - time_last_GNSS) >= GNSS_config.epoch_interval 
         %According to the observation time
         GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
         index_GNSS=find(GNSSObs(:,3)==floor(time)&~ismember(GNSSObs(:,4),GNSS_config.omit));
@@ -423,7 +426,7 @@ for epoch = 2:no_epochs
     out_profile(epoch,1) = time;
     out_profile(epoch,2:4)=(est_r_eb_e+est_C_b_e*L_ba_b)';%Position of antenna
     out_profile(epoch,5:7) = (est_v_eb_e+est_C_b_e*( Skew_symmetric(meas_omega_ib_b)*L_ba_b))';%Antenna velocity
-    out_profile(epoch,8:10) = CTM_to_Euler(est_C_b_n')';
+    out_profile(epoch,8:10) = CTM_to_Euler(est_C_b_n')' .* 180/pi;
     Rotation=[   -sin(est_L_b)*cos(est_lambda_b),-sin(est_L_b)*sin(est_lambda_b),cos(est_L_b);
                         -sin(est_lambda_b),cos(est_lambda_b),0;
                         cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];

@@ -319,8 +319,9 @@ old_est_v_ea_e=[0;0;0];
 %old_est_v_ea_e=[0.002236;0.034801;0.002225];%receiver velocity
 est_clock=[-0.007080535752941*c, 3.487476978027949e+02];
 %init attitude roll, pitch, yaw convert to yaw¡¢pitch¡¢roll
-attitude_ini = [-0.0025;-0.0016;-0.7696];
-L_ba_b=[0;0;0];
+attitude_ini = [0;0;-0.7696];
+% attitude_ini = [0;0;-2.326737];
+L_ba_b=[0;0;-0.6];
 old_est_C_b_n=Euler_to_CTM(attitude_ini)';%Coordinate transformation matrix from IMU  to local horizontal coordinate system
 [old_est_L_a,old_est_lambda_a,old_est_h_a,old_est_v_ea_n] =...
     pv_ECEF_to_NED(old_est_r_ea_e,old_est_v_ea_e);
