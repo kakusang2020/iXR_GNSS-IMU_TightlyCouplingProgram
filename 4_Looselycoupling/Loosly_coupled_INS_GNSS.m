@@ -1,6 +1,5 @@
-function [out_profile,out_IMU_bias_est,out_clock,out_KF_SD,out_MeasurementNoise_SD,out_Resi,InnovationRes,StdInnovationRes] =...
-    Loosly_coupled_INS_GNSS(FilePath,old_time,old_est_r_eb_e,old_est_v_eb_e,...
-    est_clock,attitude_ini,GNSS_config,TC_KF_config,L_ba_b,Total_GNSS_epoch)
+function [out_profile,out_IMU_bias_est,out_KF_SD,out_MeasurementNoise_SD,out_Resi,InnovationRes,StdInnovationRes] =...
+    Loosly_coupled_INS_GNSS(FilePath,old_time,old_est_r_eb_e,old_est_v_eb_e,attitude_ini,GNSS_config,TC_KF_config,L_ba_b,Total_GNSS_epoch)
 %Tightly_coupled_INS_GNSS - Simulates inertial navigation using ECEF
 % navigation equations and kinematic model, GNSS and tightly coupled
 % INS/GNSS integration.
@@ -127,8 +126,8 @@ IMUData(:,4) = -IMUData_(:,4) -9.7978;
 IMUData(:,6) = IMUData_(:,5);
 IMUData(:,5) = IMUData_(:,6);
 IMUData(:,7) = -IMUData_(:,7) ;
-IMU = IMUData;
-plotEuler(IMU(1:no_epochs,:));
+IMU = IMUData(101:end,:);
+% plotEuler(IMU(1:no_epochs,:));
 [no_epochs,~]=size(IMU);
 no_epochs = 42500;%only for 2020/11/05 TC data
 % no_epochs = 7850;
@@ -147,7 +146,7 @@ old_est_C_b_n=Euler_to_CTM(attitude_ini)';% To transformation matrix
 
 % Initialize output profile record and errors record
 out_profile = zeros(no_epochs,13);
-% out_IMU_bias_est=zeros(Total_GNSS_epoch,7);
+out_IMU_bias_est=zeros(Total_GNSS_epoch,7);
 % out_clock=zeros(Total_GNSS_epoch,4);
 out_KF_SD=zeros(Total_GNSS_epoch,18);
 % PickSubsetRes=zeros(Total_GNSS_epoch,4);
@@ -193,10 +192,6 @@ est_IMU_bias = zeros(6,1);
 % Generate IMU bias and clock output records
 out_IMU_bias_est(1,1) = old_time;
 out_IMU_bias_est(1,2:7) = est_IMU_bias';
-out_clock(1,1) = old_time;
-out_clock(1,2:3) = est_clock;
-out_clock(1,4)=0;
-out_clock(1,5)=0;
 % Generate KF uncertainty record
 out_KF_SD(1,1) = old_time;
 for i =1:15
@@ -214,7 +209,7 @@ fprintf(strcat('Processing: ',dots));
 progress_mark = 0;
 progress_epoch = 0;
 % Main loop
-for epoch = 2:no_epochs
+for epoch = 1:no_epochs
 %     epoch
     % Update progress bar
     if (epoch - progress_epoch) > (no_epochs/20)
@@ -241,16 +236,16 @@ for epoch = 2:no_epochs
     [est_r_eb_e,est_v_eb_e,est_C_b_e] = Nav_equations_ECEF(tor_i,...
         old_est_r_eb_e,old_est_v_eb_e,old_est_C_b_e,meas_f_ib_b,...
         meas_omega_ib_b);
-    
-    index_GNSS=find(GNSSObs(:,1)==floor(time));
+    lcflag = 0;
+    index_GNSS=find(GNSSObs(:,1)==round(time,1));
     % Determine whether to update GNSS observation and run Kalman filter
     if ((time - time_last_GNSS) >= GNSS_config.epoch_interval &&  ~isempty(index_GNSS))
         %According to the observation time
 %         index_GNSS=find(GNSSObs(:,1)==floor(time));
-            GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
+%             GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
             GNSS_epoch = GNSS_epoch + 1;
-            tor_s = floor(time) - time_last_GNSS;  % KF time interval
-            time_last_GNSS = floor(time);
+            tor_s = round(time,1) - time_last_GNSS;  % KF time interval
+            time_last_GNSS = round(time,1);
             %         est_r_ea_e_for_RecClockPre=est_r_eb_e+est_C_b_e*L_ba_b; %IMU position to GNSS antenna position
             %         est_v_ea_e_for_RecClockPre=est_v_eb_e;
             FIXFlag = GNSSObs(index_GNSS,2);
@@ -357,6 +352,7 @@ for epoch = 2:no_epochs
             if strcmp(TC_KF_config.KFMethod,'IAE-KF')
                 StdInnovationRes(index_GNSS,:)=[GNSSObs(index_GNSS,2:4),IAE.StdInno(1:no_GNSS_meas),IAE.StdInno(no_GNSS_meas+1:2*no_GNSS_meas)];
             end
+            lcflag = 1;
     end % if time
     
     %% Convert navigation solution to NED
@@ -368,11 +364,12 @@ for epoch = 2:no_epochs
     out_profile(epoch,2:4)=(est_r_eb_e+est_C_b_e*L_ba_b)';%Position of antenna
     out_profile(epoch,5:7) = (est_v_eb_e+est_C_b_e*( Skew_symmetric(meas_omega_ib_b)*L_ba_b))';%Antenna velocity
     out_profile(epoch,8:10) = CTM_to_Euler(est_C_b_n')' .* 180/pi;
-    Rotation=[   -sin(est_L_b)*cos(est_lambda_b),-sin(est_L_b)*sin(est_lambda_b),cos(est_L_b);
-        -sin(est_lambda_b),cos(est_lambda_b),0;
-        cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];
-    NEU=Rotation*(out_profile(epoch,2:4)-STA.STA(1).Coor(1:3))';
-    out_profile(epoch,11:13)=NEU';
+    out_profile(epoch,11) = lcflag;
+%     Rotation=[   -sin(est_L_b)*cos(est_lambda_b),-sin(est_L_b)*sin(est_lambda_b),cos(est_L_b);
+%         -sin(est_lambda_b),cos(est_lambda_b),0;
+%         cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];
+%     NEU=Rotation*(out_profile(epoch,2:4)-STA.STA(1).Coor(1:3))';
+%     out_profile(epoch,11:13)=NEU';
     
     % Reset old values
     old_time = time;

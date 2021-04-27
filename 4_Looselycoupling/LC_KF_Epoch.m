@@ -101,10 +101,10 @@ if FIXFlag == 1
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2;
 else
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 2;
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 100;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
-    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 ;
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 100;
 end
 % 7. Calculate Kalman gain using (3.21)
 K_matrix = P_matrix_propagated * H_matrix' * inv(H_matrix *...

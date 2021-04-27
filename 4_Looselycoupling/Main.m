@@ -19,21 +19,21 @@ TC_KF_config.init_b_a_unc = 1000 * micro_g_to_meters_per_second_squared;
 % Initial gyro bias uncertainty per instrument (deg/hour, converted to rad/sec)
 TC_KF_config.init_b_g_unc = 10 * deg_to_rad / 3600;
 
-% Gyro noise PSD (deg^2 per hour, converted to rad^2/s)                
-TC_KF_config.gyro_noise_PSD = (0.001)^2;
-% Accelerometer noise PSD (micro-g^2 per Hz, converted to m^2 s^-3)                
-TC_KF_config.accel_noise_PSD = (0.01)^2;
-
 % NOTE: A large noise PSD is modeled to account for the scale-factor and
 % cross-coupling errors that are not directly included in the Kalman filter model
+% Gyro noise PSD (deg^2 per hour, converted to rad^2/s)                
+TC_KF_config.gyro_noise_PSD = (1e-4)^2;
+% Accelerometer noise PSD (micro-g^2 per Hz, converted to m^2 s^-3)                
+TC_KF_config.accel_noise_PSD = (1.3e-2)^2;
+
 % Accelerometer bias random walk PSD (m^2 s^-5)
-TC_KF_config.accel_bias_PSD = 1.0E-3;
+TC_KF_config.accel_bias_PSD = 1E-4;
 % Gyro bias random walk PSD (rad^2 s^-3)
-TC_KF_config.gyro_bias_PSD = 4.0E-11;
-% Pseudo-range measurement noise SD (m)
-TC_KF_config.pos_meas_SD = 0.1;
-% Pseudo-range rate measurement noise SD (m/s)
-TC_KF_config.vel_meas_SD = 0.001;
+TC_KF_config.gyro_bias_PSD = 4E-13;
+% GNSS pos measurement noise SD (m)
+TC_KF_config.pos_meas_SD =1;
+% GNSS vel measurement noise SD (m/s)
+TC_KF_config.vel_meas_SD = 1e-3;
 
 TC_KF_config.RecClockPreprocOptions=0;% The default value is 0,If the receiver clock jitter, the value is 2
 TC_KF_config.KFMethod='ClassicKF';%ClassicKF means using the classic Kalman filter,M-LSKFClassicKF means using the classic Kalman filter,，IAE-KF表示使用新息对R阵进行膨胀
@@ -69,11 +69,16 @@ Total_GNSS_epoch = 9435 - 483;
 FilePath.GNSSFile= 'RTK.mat';
 FilePath.INSFile= 'IMUData.mat';
 % Tightly coupled ECEF Inertial navigation and GNSS integrated navigation
-[out_profile,out_IMU_bias_est,out_clock,out_KF_SD,...
+[out_profile,out_IMU_bias_est,out_KF_SD,...
     out_MeasurementNoise_SD,out_Resi,InnovationRes,StdInnovationRes] =...
-    Loosly_coupled_INS_GNSS(FilePath,old_time,old_est_r_eb_e,old_est_v_eb_e,...
-    est_clock,attitude_ini,GNSS_config,TC_KF_config,L_ba_b,Total_GNSS_epoch);
+    Loosly_coupled_INS_GNSS(FilePath,old_time,old_est_r_eb_e,old_est_v_eb_e,attitude_ini,GNSS_config,TC_KF_config,L_ba_b,Total_GNSS_epoch);
 plotCoor(out_profile(:,2:4));
 hold on
 load(FilePath.GNSSFile);
-plotCoor(GNSSTCData(1:length(GNSSTCData)/2,3:5));
+plotCoor(GNSSTCData(1:length(GNSSTCData)/2-0.5,3:5));
+ubox = csvread('ecefposFromUbox2.csv');
+plotCoor(ubox(1:length(GNSSTCData)/2-0.5,2:4));
+% hold on
+% plot(GNSSTCData(:,3));
+% hold on
+% plot(out_profile(:,2));
