@@ -266,7 +266,7 @@ GNSS_config.GLONASSPRNList=33:56;
 GNSS_config.BDSPRNList=57:91;
 
 % Initial attitude uncertainty per axis (deg, converted to rad)
-TC_KF_config.init_att_unc = degtorad(20);
+TC_KF_config.init_att_unc = deg2rad(20);
 % Initial velocity uncertainty per axis (m/s)
 TC_KF_config.init_vel_unc = 0.1;
 % Initial position uncertainty per axis (m)
@@ -282,26 +282,26 @@ TC_KF_config.init_clock_offset_unc = 10;
 TC_KF_config.init_clock_drift_unc = 0.1;
 
 % Gyro noise PSD (deg^2 per hour, converted to rad^2/s)                
-TC_KF_config.gyro_noise_PSD = (0.01)^2;
+TC_KF_config.gyro_noise_PSD = (1e-4)^2;
 % Accelerometer noise PSD (micro-g^2 per Hz, converted to m^2 s^-3)                
-TC_KF_config.accel_noise_PSD = (0.1)^2;
+TC_KF_config.accel_noise_PSD = (1.3e-2)^2;
 
 % NOTE: A large noise PSD is modeled to account for the scale-factor and
 % cross-coupling errors that are not directly included in the Kalman filter model
 % Accelerometer bias random walk PSD (m^2 s^-5)
-TC_KF_config.accel_bias_PSD = 1.0E-5;
+TC_KF_config.accel_bias_PSD = 1.0E-4;
 % Gyro bias random walk PSD (rad^2 s^-3)
-TC_KF_config.gyro_bias_PSD = 4.0E-11;
+TC_KF_config.gyro_bias_PSD = 4.0E-13;
 % Receiver clock frequency-drift PSD (m^2/s^3)
 TC_KF_config.clock_freq_PSD = 1;
 % Receiver clock phase-drift PSD (m^2/s)
 TC_KF_config.clock_phase_PSD = 1;
 % Pseudo-range measurement noise SD (m)
-TC_KF_config.pseudo_range_SD = 2.5;
+TC_KF_config.pseudo_range_SD = 5;
 % Pseudo-range rate measurement noise SD (m/s)
-TC_KF_config.range_rate_SD = 0.1;
+TC_KF_config.range_rate_SD = 1e-3;
 TC_KF_config.RecClockPreprocOptions=0;% The default value is 0,If the receiver clock jitter, the value is 2
-TC_KF_config.KFMethod='M-LSKF';%ClassicKF means using the classic Kalman filter,M-LSKFClassicKF means using the classic Kalman filter,，IAE-KF表示使用新息对R阵进行膨胀
+TC_KF_config.KFMethod='IAE-KF';%ClassicKF means using the classic Kalman filter,M-LSKFClassicKF means using the classic Kalman filter,，IAE-KF表示使用新息对R阵进行膨胀
 TC_KF_config.StationarityDetectionInterval=1;
 TC_KF_config.StationarityDetectionFlag=[0,0,0,0];%ZUPT [Horizontal velocity threshold, accelerometer measurement standard deviation, frequency domain filter, azimuth rate]
 if TC_KF_config.StationarityDetectionFlag(1)==1
@@ -338,3 +338,4 @@ FilePath.INSFile= 'IMUData.mat';
     out_MeasurementNoise_SD,out_Resi,InnovationRes,StdInnovationRes] =...
     Tightly_coupled_INS_GNSS(FilePath,old_time,old_est_r_eb_e,old_est_v_eb_e,...
     est_clock,attitude_ini,GNSS_config,TC_KF_config,L_ba_b,Total_GNSS_epoch);
+plotCoor(out_profile(:,2:4));

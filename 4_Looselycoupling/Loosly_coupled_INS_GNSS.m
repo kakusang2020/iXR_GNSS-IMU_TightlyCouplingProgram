@@ -111,26 +111,50 @@ function [out_profile,out_IMU_bias_est,out_KF_SD,out_MeasurementNoise_SD,out_Res
 % Modified 2017/8 by LiuXiao BUAA benzenemo@buaa.edu.cn % 20170311B104ZXY
 % Begins
 
-%global STA
 STA.STA(1).Coor(1:3) = [-3961904.939,3348993.763,3698211.764];
-load(FilePath.GNSSFile);
-load(FilePath.INSFile);
-GNSSObs = GNSSTCData;
-no_epochs = 42500;%only for 2020/11/05 data
-% R-F-D to F-R-D
+GNSSObs = csvread(FilePath.GNSSFile);
+IMUData = csvread(FilePath.INSFile);
+
+%% Estelle imu body frame R-F-D to F-R-D
 IMUData_ = IMUData;
+IMUData_(:,2:4) = IMUData_(:,2:4) .* 9.7978;
+IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
 IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:3000,2:7)); %remove bias
+IMUData(:,1) = IMUData_(:,1) + 18;
 IMUData(:,3) = IMUData_(:,2);
 IMUData(:,2) = IMUData_(:,3);
 IMUData(:,4) = -IMUData_(:,4) -9.7978;
 IMUData(:,6) = IMUData_(:,5);
 IMUData(:,5) = IMUData_(:,6);
 IMUData(:,7) = -IMUData_(:,7) ;
-IMU = IMUData(101:end,:);
-% plotEuler(IMU(1:no_epochs,:));
+IMUData(:,9) =  IMUData_(:,9) .* 1000/3600/1.41;
+% CarSpeed = [IMUData_(:,1)+7.2,IMUData_(:,9).*1000/3600,IMUData_(:,11)];
+% IMUData(:,8) = CarSpeed(:,2);
+no_epochs = 42500;%only for 2020/11/05 data
+
+%% G370 imu body frame B-L-D to F-R-D
+% IMUData_ = IMUData;
+% IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
+% IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(1500:4000,2:7)); %remove bias
+% IMUData(:,1) =  IMUData_(:,1);
+% IMUData(:,2) = -IMUData_(:,2);
+% IMUData(:,3) = -IMUData_(:,3);
+% IMUData(:,4) = -IMUData_(:,4) - 9.7978;
+% IMUData(:,5) = -IMUData_(:,5);
+% IMUData(:,6) = -IMUData_(:,6);
+% IMUData(:,7) = -IMUData_(:,7);
+
+tor_s = 0.02; %IMU freq
+IMU = IMUData(find(IMUData(:,1) == old_time):end,:);
+% IMU = IMUData(8130:end,:);
+% figure (1);
+% plotEuler(IMU(1:end,:));
 [no_epochs,~]=size(IMU);
-no_epochs = 42500;%only for 2020/11/05 TC data
+no_epochs=no_epochs-100.2*50;
+% no_epochs = 42500;%only for 2020/11/05 TC data
+% no_epochs = 111926; %2021/4/12 G370
 % no_epochs = 7850;
+
 c = 299792458;
 GM = 3.986005000000000e+14;
 
@@ -151,23 +175,6 @@ out_IMU_bias_est=zeros(Total_GNSS_epoch,7);
 out_KF_SD=zeros(Total_GNSS_epoch,18);
 % PickSubsetRes=zeros(Total_GNSS_epoch,4);
 [GNSSObsNum,~]=size(GNSSObs);
-RecClockBiasRes=zeros(GNSSObsNum,5);
-
-if strcmp(TC_KF_config.KFMethod,'M-LSKF')
-    MLS.MAXloop=10;%If the number of iterations is greater than this value, the iteration is stopped
-    MLS.DeltaPosi=0.01;%If the 3D position change is less than this value during iteration, the iteration will stop
-    MLS.OutlierCount=0;%The number of observations whose residuals exceed the limit
-    %References:Adaptive dynamic navigation and positioning[M].2017. P100
-    MLS.WeightFunctionCategory=3;%3 means to use a three-stage weight function
-    MLS.PseudorangeC=2.5;%Pseudo range non return to zero 2-segment weight function standardized residual piecewise point
-    MLS.PseudorangeRateC=2.5;%Pseudo range rate does not return to zero 2-segment weight function standardized residual segmentation point
-    MLS.K0=2.0;%Three segment weight function standardized innovation piecewise point K0
-    MLS.K1=5.0;%Three segment weight function standardized innovation piecewise point K1
-elseif strcmp(TC_KF_config.KFMethod,'IAE-KF')
-    IAE.WeightFunctionCategory=3;%3 means to use a three-stage weight function
-    IAE.K0=1.5;%Three segment weight function standardized innovation piecewise point K0
-    IAE.K1=5.0;%Three segment weight function standardized innovation piecewise point K1
-end
 
 InnovationRes=zeros(GNSSObsNum,5);
 StdInnovationRes=zeros(GNSSObsNum,5);
@@ -188,7 +195,7 @@ out_profile(1,11:13)=NEU';
 % Initialize Kalman filter P matrix and IMU bias states
 P_matrix = Initialize_TC_P_matrix(TC_KF_config);
 est_IMU_bias = zeros(6,1);
-
+est_ZUPT_IMU_bias = zeros(6,1);
 % Generate IMU bias and clock output records
 out_IMU_bias_est(1,1) = old_time;
 out_IMU_bias_est(1,2:7) = est_IMU_bias';
@@ -198,7 +205,7 @@ for i =1:15
     out_KF_SD(1,i+1) = sqrt(P_matrix(i,i));
 end % for i
 % Initialize GNSS model timing
-time_last_GNSS = floor(old_time);%GNSSObs update time
+time_last_GNSS = round(old_time,1);%GNSSObs update time
 TC_KF_config.StationarityFlag = 0;%station flag£¬defult is 0, kinmetic
 GNSS_epoch = 1;
 % Progress bar
@@ -208,9 +215,10 @@ rewind = '\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b';
 fprintf(strcat('Processing: ',dots));
 progress_mark = 0;
 progress_epoch = 0;
-% Main loop
+debug = [];
+%% Main loop
 for epoch = 1:no_epochs
-%     epoch
+    %     epoch
     % Update progress bar
     if (epoch - progress_epoch) > (no_epochs/20)
         progress_mark = progress_mark + 1;
@@ -226,11 +234,13 @@ for epoch = 1:no_epochs
     tor_i = time - old_time;
     
     % Calculate specific force and angular rate
-    meas_f_ib_b=IMU(epoch,2:4)';
-    meas_omega_ib_b=IMU(epoch,5:7)';
+    meas_f_ib_b_ =IMU(epoch,2:4)';
+    meas_omega_ib_b_ =IMU(epoch,5:7)';
+    CarSpeed_ = IMU(epoch,9);
+    
     % Correct IMU errors
-    meas_f_ib_b = meas_f_ib_b - est_IMU_bias(1:3);
-    meas_omega_ib_b = meas_omega_ib_b - est_IMU_bias(4:6);
+    meas_f_ib_b = meas_f_ib_b_ - est_IMU_bias(1:3);
+    meas_omega_ib_b = meas_omega_ib_b_ - est_IMU_bias(4:6);
     
     % Update estimated navigation solution
     [est_r_eb_e,est_v_eb_e,est_C_b_e] = Nav_equations_ECEF(tor_i,...
@@ -241,118 +251,68 @@ for epoch = 1:no_epochs
     % Determine whether to update GNSS observation and run Kalman filter
     if ((time - time_last_GNSS) >= GNSS_config.epoch_interval &&  ~isempty(index_GNSS))
         %According to the observation time
-%         index_GNSS=find(GNSSObs(:,1)==floor(time));
-%             GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
-            GNSS_epoch = GNSS_epoch + 1;
-            tor_s = round(time,1) - time_last_GNSS;  % KF time interval
-            time_last_GNSS = round(time,1);
-            %         est_r_ea_e_for_RecClockPre=est_r_eb_e+est_C_b_e*L_ba_b; %IMU position to GNSS antenna position
-            %         est_v_ea_e_for_RecClockPre=est_v_eb_e;
-            FIXFlag = GNSSObs(index_GNSS,2);
-            GNSS_r_eb_e = GNSSObs(index_GNSS,3:5)';
-            GNSS_v_eb_e =  GNSSObs(index_GNSS,6:8)';
-            if strcmp(TC_KF_config.KFMethod,'ClassicKF')
-                % Run Integration Kalman filter
-                [est_C_b_e,est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix] =...
-                    LC_KF_Epoch(GNSS_r_eb_e,GNSS_v_eb_e,tor_s,est_C_b_e,...
-                    est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix,meas_f_ib_b,est_L_b,TC_KF_config,FIXFlag);
-                %% M-LSKF
-                %         elseif strcmp(TC_KF_config.KFMethod,'M-LSKF')
-                %             MLS_loopflag=true;
-                %             MLS_loopCount=0;
-                %             MLS.OutlierCount=0;
-                %             index_LowEle=GNSS_measurements(:,9)<30;
-                %             ElevationGain=ones(no_GNSS_meas,1);
-                %             ElevationGain(index_LowEle)=1./(2*sind(GNSS_measurements(index_LowEle,9)));
-                %             if TC_KF_config.StationarityFlag == 0 && TC_KF_config.DoubleGNSSDataFlag == 0%Static detection result is dynamic and no dual antenna observation
-                %                 R_matrix=eye(no_GNSS_meas*2);
-                %             elseif TC_KF_config.StationarityFlag == 1 && TC_KF_config.DoubleGNSSDataFlag == 0%Static detection result is static and no dual antenna observation
-                %                 R_matrix=eye(no_GNSS_meas*2+1);
-                %             elseif TC_KF_config.StationarityFlag == 0 && TC_KF_config.DoubleGNSSDataFlag == 1%The static detection result is dynamic and has dual-antenna observation
-                %                 R_matrix=eye(no_GNSS_meas*2+3);
-                %             elseif TC_KF_config.StationarityFlag == 1 && TC_KF_config.DoubleGNSSDataFlag == 1%The static detection result is static and has dual antenna observation
-                %                 R_matrix=eye(no_GNSS_meas*2+4);
-                %             end
-                %
-                %             R_matrix(1:no_GNSS_meas,1:no_GNSS_meas) = diag(ElevationGain)*...
-                %                 TC_KF_config.pseudo_range_SD^2;
-                %
-                %             R_matrix((no_GNSS_meas + 1):2*no_GNSS_meas,(no_GNSS_meas + 1):2*no_GNSS_meas) =...
-                %                 diag(ElevationGain.*ElevationGain)...
-                %                 * TC_KF_config.range_rate_SD^2;
-                %
-                %             if  TC_KF_config.StationarityFlag == 1 && TC_KF_config.DoubleGNSSDataFlag == 0%Static detection result is static and no dual antenna observation
-                %                 R_matrix(2*no_GNSS_meas+1,2*no_GNSS_meas+1)=TC_KF_config.ZARU_DGrySD^2;
-                %             elseif TC_KF_config.StationarityFlag == 0 && TC_KF_config.DoubleGNSSDataFlag == 1%The static detection result is dynamic and has dual-antenna observation
-                %                 R_matrix(2*no_GNSS_meas+1:2*no_GNSS_meas+3,2*no_GNSS_meas+1:2*no_GNSS_meas+3)=eye(3)*DoubleGNSSHeadingEpoch(1,2)^2;
-                %             elseif TC_KF_config.StationarityFlag == 1 && TC_KF_config.DoubleGNSSDataFlag == 1%The static detection result is static and has dual antenna observation
-                %                 R_matrix(2*no_GNSS_meas+1,2*no_GNSS_meas+1)=TC_KF_config.ZARU_DGrySD^2;
-                %                 R_matrix(2*no_GNSS_meas+2:2*no_GNSS_meas+4,2*no_GNSS_meas+2:2*no_GNSS_meas+4)=eye(3)*DoubleGNSSHeadingEpoch(1,2)^2;
-                %             end
-                %             while MLS_loopflag
-                %                 if MLS_loopCount==0
-                %                     est_r_eb_e_temp_old=est_r_eb_e;
-                %                 else
-                %                     R_matrix=R_matrix_NextLoop;
-                %                 end
-                %                 [est_C_b_e_temp,est_v_eb_e_temp,est_r_eb_e_temp,est_IMU_bias_temp,est_clock_temp,P_matrix_temp,R_matrix_NextLoop,MLS] =...
-                %                     MLS_KF_Epoch(GNSS_measurements,no_GNSS_meas,tor_s,est_C_b_e,...
-                %                     est_v_eb_e,est_r_eb_e,est_IMU_bias,est_clock,P_matrix,...
-                %                     meas_f_ib_b,TC_KF_config,L_ba_b,meas_omega_ib_b,Clock_Reset_Flag,R_matrix,MLS,DoubleGNSSHeadingEpoch);
-                %                 MLS_loopCount=MLS_loopCount+1;
-                %                 if MLS_loopCount==1
-                %                     Resi=MLS.Resi;
-                %                     StdResi=MLS.StdResi;
-                %                 end
-                %                 if MLS.OutlierCount==0 %The residuals are all within the threshold, no iteration to re-weight
-                %                     break
-                %                 end
-                %                 if norm(est_r_eb_e_temp_old-est_r_eb_e_temp,2)<MLS.DeltaPosi||MLS_loopCount>=MLS.MAXloop
-                %                     MLS_loopflag=false;
-                %                 end
-                %                 est_r_eb_e_temp_old=est_r_eb_e_temp;
-                %             end
-                %             est_C_b_e=est_C_b_e_temp;
-                %             est_v_eb_e=est_v_eb_e_temp;
-                %             est_r_eb_e=est_r_eb_e_temp;
-                %             est_IMU_bias=est_IMU_bias_temp;
-                %             est_clock=est_clock_temp;
-                %             P_matrix=P_matrix_temp;
-                %             %% IAE-KF
-                %         elseif strcmp(TC_KF_config.KFMethod,'IAE-KF')
-                %             index_LowEle=GNSS_measurements(:,9)<30;
-                %             ElevationGain=ones(no_GNSS_meas,1);
-                %             ElevationGain(index_LowEle)=1./(2*sind(GNSS_measurements(index_LowEle,9)));
-                %             R_matrix=eye(no_GNSS_meas*2);
-                %             R_matrix(1:no_GNSS_meas,1:no_GNSS_meas) = diag(ElevationGain)*...
-                %                 TC_KF_config.pseudo_range_SD^2;
-                %             R_matrix((no_GNSS_meas + 1):end,(no_GNSS_meas + 1):end) =...
-                %                 diag(ElevationGain)...
-                %                 * TC_KF_config.range_rate_SD^2;
-                %             [est_C_b_e,est_v_eb_e,est_r_eb_e,est_IMU_bias,est_clock,P_matrix,IAE,R_matrix] =...
-                %                 IAE_KF_Epoch(GNSS_measurements,no_GNSS_meas,tor_s,est_C_b_e,...
-                %                 est_v_eb_e,est_r_eb_e,est_IMU_bias,est_clock,P_matrix,...
-                %                 meas_f_ib_b,est_L_b,TC_KF_config,L_ba_b,meas_omega_ib_b,Clock_Reset_Flag,R_matrix,IAE);
-            end
-            %% Generate IMU bias and clock output records
-            out_IMU_bias_est(GNSS_epoch,1) = time;
-            out_IMU_bias_est(GNSS_epoch,2:7) = est_IMU_bias';
-            % Generate KF uncertainty output record
-            out_KF_SD(GNSS_epoch,1) = time;
-            for i =1:15
-                out_KF_SD(GNSS_epoch,i+1) = sqrt(P_matrix(i,i));
-            end % for i
-            %measurement noise SD output record(m)
-            if ~strcmp(TC_KF_config.KFMethod,'ClassicKF')
-                out_MeasurementNoise_SD(index_GNSS,:)=[GNSSObs(index_GNSS,2:4),sqrt(diag(R_matrix(1:no_GNSS_meas,1:no_GNSS_meas)))];
-            end
-            if strcmp(TC_KF_config.KFMethod,'M-LSKF')
-                out_Resi(index_GNSS,:)=[GNSSObs(index_GNSS,2:4),Resi(1:no_GNSS_meas),StdResi(1:no_GNSS_meas),Resi(no_GNSS_meas+1:2*no_GNSS_meas),StdResi(no_GNSS_meas+1:2*no_GNSS_meas)];
-            end
-            if strcmp(TC_KF_config.KFMethod,'IAE-KF')
-                StdInnovationRes(index_GNSS,:)=[GNSSObs(index_GNSS,2:4),IAE.StdInno(1:no_GNSS_meas),IAE.StdInno(no_GNSS_meas+1:2*no_GNSS_meas)];
-            end
-            lcflag = 1;
+        %         index_GNSS=find(GNSSObs(:,1)==floor(time));
+        %             GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
+        GNSS_epoch = GNSS_epoch + 1;
+        tor_s = round(time,1) - time_last_GNSS;  % KF time interval
+        time_last_GNSS = round(time,1);
+        %         est_r_ea_e_for_RecClockPre=est_r_eb_e+est_C_b_e*L_ba_b; %IMU position to GNSS antenna position
+        %         est_v_ea_e_for_RecClockPre=est_v_eb_e;
+        FIXFlag = GNSSObs(index_GNSS,2);
+        GNSS_r_eb_e = GNSSObs(index_GNSS,3:5)';
+        GNSS_v_eb_e =  GNSSObs(index_GNSS,6:8)';
+        if CarSpeed_ == 0
+            GNSS_v_eb_e = [0;0;0];
+        end
+        if strcmp(TC_KF_config.KFMethod,'ClassicKF')
+            % Run Integration Kalman filter
+            debug = [debug;time_last_GNSS,GNSS_r_eb_e',GNSS_v_eb_e',est_r_eb_e',est_v_eb_e',CTM_to_Euler(est_C_b_n')' .* 180/pi,est_IMU_bias',meas_f_ib_b_',norm(GNSS_v_eb_e),CarSpeed_];%Debug
+            [est_C_b_e,est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix] =...
+                LC_KF_Epoch(GNSS_r_eb_e,GNSS_v_eb_e,tor_s,est_C_b_e,...
+                est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix,meas_f_ib_b,est_L_b,TC_KF_config,FIXFlag);
+        end
+        %% Generate IMU bias and clock output records
+        out_IMU_bias_est(GNSS_epoch,1) = time;
+        out_IMU_bias_est(GNSS_epoch,2:7) = est_IMU_bias';
+        % Generate KF uncertainty output record
+        out_KF_SD(GNSS_epoch,1) = time;
+        for i =1:15
+            out_KF_SD(GNSS_epoch,i+1) = sqrt(P_matrix(i,i));
+        end % for i
+        %measurement noise SD output record(m)
+        if ~strcmp(TC_KF_config.KFMethod,'ClassicKF')
+            out_MeasurementNoise_SD(index_GNSS,:)=[GNSSObs(index_GNSS,2:4),sqrt(diag(R_matrix(1:no_GNSS_meas,1:no_GNSS_meas)))];
+        end
+        lcflag = 1;
+%         zuptFlag = 0;
+    elseif (((time - time_last_GNSS) >= GNSS_config.epoch_interval) &&  isempty(index_GNSS) && CarSpeed_ < 2 ) %&& CarSpeed_ == 0
+        [L_b,lambda_b,h_b,v_eb_n,est_C_b_n] = ECEF_to_NED(est_r_eb_e,est_v_eb_e,est_C_b_e);
+        Euler_ = CTM_to_Euler(est_C_b_n');
+        YawAngle_ = Euler_(3);
+        CarSpeedNED = [CarSpeed_ * cos(YawAngle_);CarSpeed_ * sin(YawAngle_);0];
+        %         C_b_n = Euler_to_CTM([0,0,YawAngle_])';
+        %         [CarPos,CarVel,CarC_b_e] = NED_to_ECEF(L_b,lambda_b,h_b,CarSpeedNED,C_b_n);
+        [~,CarVel,CarC_b_e] = NED_to_ECEF(L_b,lambda_b,h_b,CarSpeedNED,est_C_b_n);
+%         FIXFlag = 4;
+        [est_C_b_e,est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix] =...
+            LC_VEL_KF_Epoch(CarVel,tor_s,est_C_b_e,...
+            est_v_eb_e,est_r_eb_e,est_IMU_bias,P_matrix,meas_f_ib_b,-est_L_b,TC_KF_config);
+        %% ZUPT
+        %         if CarSpeed_ == 0
+        %             est_ZUPT_IMU_bias(1:2) = est_ZUPT_IMU_bias(1:2) + meas_f_ib_b(1:2);%acc bias
+        %             est_ZUPT_IMU_bias(3) = est_ZUPT_IMU_bias(3) - 9.7978 - meas_f_ib_b(3);
+        %             est_ZUPT_IMU_bias(4:6) = est_ZUPT_IMU_bias(4:6) + meas_omega_ib_b;%gyro bias
+        %             zuptFlag = zuptFlag + 1;
+        %             if zuptFlag == 100
+        %                 est_IMU_bias = est_ZUPT_IMU_bias ./ 100;
+        %                 zuptFlag = 0;
+        %                 est_ZUPT_IMU_bias = zeros(6,1);
+        %             end
+        %         else
+        %             zuptFlag = 0;
+        %             est_ZUPT_IMU_bias = zeros(6,1);
+        %         end
+        lcflag = 2;
     end % if time
     
     %% Convert navigation solution to NED
@@ -365,11 +325,11 @@ for epoch = 1:no_epochs
     out_profile(epoch,5:7) = (est_v_eb_e+est_C_b_e*( Skew_symmetric(meas_omega_ib_b)*L_ba_b))';%Antenna velocity
     out_profile(epoch,8:10) = CTM_to_Euler(est_C_b_n')' .* 180/pi;
     out_profile(epoch,11) = lcflag;
-%     Rotation=[   -sin(est_L_b)*cos(est_lambda_b),-sin(est_L_b)*sin(est_lambda_b),cos(est_L_b);
-%         -sin(est_lambda_b),cos(est_lambda_b),0;
-%         cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];
-%     NEU=Rotation*(out_profile(epoch,2:4)-STA.STA(1).Coor(1:3))';
-%     out_profile(epoch,11:13)=NEU';
+    %     Rotation=[   -sin(est_L_b)*cos(est_lambda_b),-sin(est_L_b)*sin(est_lambda_b),cos(est_L_b);
+    %         -sin(est_lambda_b),cos(est_lambda_b),0;
+    %         cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];
+    %     NEU=Rotation*(out_profile(epoch,2:4)-STA.STA(1).Coor(1:3))';
+    %     out_profile(epoch,11:13)=NEU';
     
     % Reset old values
     old_time = time;
@@ -377,6 +337,9 @@ for epoch = 1:no_epochs
     old_est_v_eb_e = est_v_eb_e;
     old_est_C_b_e = est_C_b_e;
 end %epoch
+
+figure (2);
+plot(out_profile(:,8:10));
 
 % Complete progress bar
 fprintf(strcat(rewind,bars,'\n'));

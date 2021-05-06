@@ -40,7 +40,6 @@ function [est_C_b_e_new,est_v_eb_e_new,est_r_eb_e_new,est_IMU_bias_new,...
 %     Rows 4-6          estimated gyro biases (rad/s)
 %   P_matrix_new      updated Kalman filter error covariance matrix
 
-
 % Copyright 2012, Paul Groves
 % License: BSD; see license.txt for details
 
@@ -61,14 +60,16 @@ Omega_ie = Skew_symmetric([0,0,omega_ie]);
 Phi_matrix = eye(15);
 Phi_matrix(1:3,1:3) = Phi_matrix(1:3,1:3) - Omega_ie * tor_s;
 Phi_matrix(1:3,13:15) = est_C_b_e_old * tor_s;
-Phi_matrix(4:6,1:3) = -tor_s * Skew_symmetric(est_C_b_e_old * meas_f_ib_b);
-Phi_matrix(4:6,4:6) = Phi_matrix(4:6,4:6) - 2 * Omega_ie * tor_s;
+
+Phi_matrix(4:6,1:3) = -tor_s * Skew_symmetric(est_C_b_e_old * meas_f_ib_b); %attitude
+Phi_matrix(4:6,4:6) = Phi_matrix(4:6,4:6) - 2 * Omega_ie * tor_s; %velocity
 geocentric_radius = R_0 / sqrt(1 - (e * sin(est_L_b_old))^2) *...
     sqrt(cos(est_L_b_old)^2 + (1 - e^2)^2 * sin(est_L_b_old)^2); % from (2.137)
 Phi_matrix(4:6,7:9) = -tor_s * 2 * Gravity_ECEF(est_r_eb_e_old) /...
     geocentric_radius * est_r_eb_e_old' / sqrt (est_r_eb_e_old' *...
-    est_r_eb_e_old);
-Phi_matrix(4:6,10:12) = est_C_b_e_old * tor_s;
+    est_r_eb_e_old); %pos
+Phi_matrix(4:6,10:12) = est_C_b_e_old * tor_s; %imu acc bias
+
 Phi_matrix(7:9,4:6) = eye(3) * tor_s;
 
 % 2. Determine approximate system noise covariance matrix using (14.82)
@@ -93,27 +94,44 @@ H_matrix = zeros(6,15);
 H_matrix(1:3,7:9) = -eye(3);
 H_matrix(4:6,4:6) = -eye(3);
 
-% 6. Set-up measurement noise covariance matrix assuming all components of
+% 6. Formulate measurement innovations using (14.102), noting that zero
+% lever arm is assumed here
+delta_z(1:3,1) = GNSS_r_eb_e -est_r_eb_e_old;
+delta_z(4:6,1) = GNSS_v_eb_e -est_v_eb_e_old;
+
+% IAE-KF
+% IAE.K0 = 50;IAE.K1 = 120; MGain = eye(6);
+% StdInno=delta_z./sqrt(diag(H_matrix *P_matrix_propagated * H_matrix' + R_matrix));
+% index_outlier=find(abs(StdInno>IAE.K1));
+% if ~isempty(index_outlier)
+%     MGain(index_outlier,index_outlier)=1e4*eye(length(index_outlier));
+% end
+% index_buffer=find(abs(StdInno)>IAE.K0&abs(StdInno)<=IAE.K1);
+% if ~isempty(index_buffer)
+%     MGain(index_buffer,index_buffer)=(IAE.K1-IAE.K0)^2/IAE.K0*...
+%         diag(abs(StdInno(index_buffer))./((IAE.K1*ones(length(index_buffer),1)-abs(StdInno(index_buffer)))...
+%         .*(IAE.K1*ones(length(index_buffer),1)-abs(StdInno(index_buffer)))));
+% end
+% R_matrix=MGain*R_matrix;
+% K_matrix = P_matrix_propagated * H_matrix' /(H_matrix * P_matrix_propagated * H_matrix' + R_matrix);
+
+% 7. Set-up measurement noise covariance matrix assuming all components of
 % GNSS position and velocity are independent and have equal variance.
-if FIXFlag == 1
+if (FIXFlag == 2)%RTK folat  && norm(GNSS_v_eb_e)<20
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 100;
+    R_matrix(1:3,4:6) = zeros(3);
+    R_matrix(4:6,1:3) = zeros(3);
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 5;
+else
     R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2;
-else
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 100;
-    R_matrix(1:3,4:6) = zeros(3);
-    R_matrix(4:6,1:3) = zeros(3);
-    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 100;
 end
-% 7. Calculate Kalman gain using (3.21)
+
+% 8. Calculate Kalman gain using (3.21)
 K_matrix = P_matrix_propagated * H_matrix' * inv(H_matrix *...
     P_matrix_propagated * H_matrix' + R_matrix);
-
-% 8. Formulate measurement innovations using (14.102), noting that zero
-% lever arm is assumed here
-delta_z(1:3,1) = GNSS_r_eb_e -est_r_eb_e_old;
-delta_z(4:6,1) = GNSS_v_eb_e -est_v_eb_e_old;
 
 % 9. Update state estimates using (3.24)
 x_est_new = x_est_propagated + K_matrix * delta_z;
