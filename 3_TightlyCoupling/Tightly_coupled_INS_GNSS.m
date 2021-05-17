@@ -117,20 +117,23 @@ STA.STA(1).Coor(1:3) = [-3961904.939,3348993.763,3698211.764];
 load(FilePath.GNSSFile);
 load(FilePath.INSFile);
 GNSSObs = GNSSTCData;
-no_epochs = 42500;%only for 2020/11/05 data
+GNSSObs(:,5) = GNSSObs(:,5);%+ GNSSObs(:,17);
+GNSSObs(:,3) = round(GNSSObs(:,3),1);
+% no_epochs = 42500;%only for 2020/11/05 data
 % R-F-D to F-R-D 
-IMUData_ = IMUData;
-IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:3000,2:7)); %remove bias
-IMUData(:,3) = IMUData_(:,2);
-IMUData(:,2) = IMUData_(:,3);
-IMUData(:,4) = -IMUData_(:,4) -9.7978;
-IMUData(:,6) = IMUData_(:,5);
-IMUData(:,5) = IMUData_(:,6);
-IMUData(:,7) = -IMUData(:,7) ;
-IMU = IMUData;
-plotEuler(IMU(1:no_epochs,:));
-[no_epochs,~]=size(IMU);
-no_epochs = 42500;%only for 2020/11/05 data
+% IMUData_ = IMUData;
+% IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:3000,2:7)); %remove bias
+% IMUData(:,3) = IMUData_(:,2);
+% IMUData(:,2) = IMUData_(:,3);
+% IMUData(:,4) = -IMUData_(:,4) -9.7978;
+% IMUData(:,6) = IMUData_(:,5);
+% IMUData(:,5) = IMUData_(:,6);
+% IMUData(:,7) = -IMUData(:,7) ;
+% IMU = IMUData;
+% [no_epochs,~]=size(IMU);
+% plotEuler(IMU(1:no_epochs,:));
+no_epochs = find(IMU(:,1) == min(GNSSObs(end,3),IMU(end,1)));
+% no_epochs = round(no_epochs/1.75);
 c = 299792458;
 GM = 3.986005000000000e+14;
 
@@ -243,17 +246,17 @@ for epoch = 2:no_epochs
         meas_omega_ib_b);
 
     % Determine whether to update GNSS observation and run Kalman filter
-    if (time - time_last_GNSS) >= GNSS_config.epoch_interval 
+    if round((time - time_last_GNSS),2) >= GNSS_config.epoch_interval 
         %According to the observation time
         GNSSObs(:,3) = round(GNSSObs(:,3),2);%Take two decimal places
-        index_GNSS=find(GNSSObs(:,3)==floor(time)&~ismember(GNSSObs(:,4),GNSS_config.omit));
+        index_GNSS=find(round(GNSSObs(:,3),1)==round(time,1)&~ismember(GNSSObs(:,4),GNSS_config.omit));
         no_GNSS_meas=length(index_GNSS);
         if no_GNSS_meas < 1
             disp(['Time' num2str(time) 'GNSS Missing observation'])
         else
             GNSS_epoch = GNSS_epoch + 1;
-            tor_s = floor(time) - time_last_GNSS;  % KF time interval
-            time_last_GNSS = floor(time);
+            tor_s = round(time,1) - time_last_GNSS;  % KF time interval
+%             time_last_GNSS = round(time,1);
             est_r_ea_e_for_RecClockPre=est_r_eb_e+est_C_b_e*L_ba_b; %IMU position to GNSS antenna position
             est_v_ea_e_for_RecClockPre=est_v_eb_e;
             %remove ISB
@@ -261,6 +264,10 @@ for epoch = 2:no_epochs
             if ~isempty(index_BDS)
                 GNSSObs(index_GNSS(index_BDS),5)=GNSSObs(index_GNSS(index_BDS),5)-GNSS_config.ISBBDS_GPS;
             end
+%             if GNSSObs(index_GNSS,3) == 1.119062000000000e+05
+%                  TC_KF_config.RecClockPreprocOptions =2;
+% %                     est_clock = [-68969.4017-66.982952,333.279967];
+%             end
             %Screening of abnormal satellites (altitude cutoff angle, SNR, new information screening satellite)
             [index_elimi,RecClockPre,RecClockBias,Innovation,RecClockRateBias]=RemoveOutlierGNSSObs(est_r_ea_e_for_RecClockPre,...
                 est_v_ea_e_for_RecClockPre,GNSSObs(index_GNSS,:),est_clock,tor_s,TC_KF_config.RecClockPreprocOptions,GNSS_config);
@@ -273,6 +280,7 @@ for epoch = 2:no_epochs
             if no_GNSS_meas < 1
                 disp(['Time' num2str(time) 'GNSSObs removed in RemoveOutlierGNSSObs section'])
             else
+                time_last_GNSS = round(time,1);
                 %Select satellites according to the specified number of satellites
                 PDOP=999;
                 if GNSS_config.intend_no_GNSS_meas<no_GNSS_meas %Judge the relationship between the number of available satellites and the number of satellites to be selected

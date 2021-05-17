@@ -4,7 +4,7 @@ clc,clear
 % First time read raw data
 % global ObsHead
 % global ObsData
-% gnssData = generateGnssData('rover_GQ_L1.obs','base_GQ_L1.nav');
+% gnssData = generateGnssData('rover2.obs','base.nav');
 % ObsData = gnssData.obsData;
 % NavData = gnssData.navData;
 % ObsHead = gnssData.headerData.obsHeader;
@@ -74,16 +74,16 @@ for i=1:Epoch_Num
                 [Xs,Ys,Zs,sat_clk,rela,s, rate_clock, Xsvel, Ysvel, Zsvel, delta_tsv_L1pie]=Cal_Sat_Pos(ObsData(i).time(1).GPSWeek,ObsData(i).time(1).GPST-rec_clk,ObsData(i).svObs(j),ApproCoor);
                 Sat_xyz=([Xs ,Ys ,Zs]-ApproCoor)*Rota; %The coordinates of satellite in the station center horizontal coordinate system
                 ele=asind(Sat_xyz(3)/sqrt(sum(Sat_xyz.^2))); %elevation
-                %                 if ele<7   %Mask angle
-                %                     %i %5087
-                %                     continue;
-                %                 end
+%                                 if ele<10   %Mask angle
+%                                     %i %5087
+%                                     continue;
+%                                 end
                 %Signal freq pseudorange
                 if strcmp(ObsData(i).svObs(j).constellation,'GPS') && ~isnan(ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexGPS.C1C))
-                    Range = ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexGPS.C1C) - 3.0; %-7.5?
+                    Range = ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexGPS.C1C) ; %-7.5?
                     k=1;  %weight
                 elseif strcmp(ObsData(i).svObs(j).constellation,'QZSS') && ~isnan(ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexGPS.C1C))
-                    Range = ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexQZSS.C1C) - 3.0; %-7.5?
+                    Range = ObsData(i).svObs(j).measurements(ObsHead.obsType.typeIndexQZSS.C1C) ; %-7.5?
                     k=1;  %weight
                 else
                     continue;
@@ -99,7 +99,7 @@ for i=1:Epoch_Num
                 LV_ = [LV_; rate + ( AV_(end,1) .* (Xsvel-ApproCoorV_(1)) + AV_(end,2) .* (Ysvel-ApproCoorV_(2)) + ...
                     AV_(end,3) .* (Zsvel-ApproCoorV_(3))) - c * delta_tsv_L1pie];
                 %rate_clock cow10
-                data_(j,:) = [i, ObsData(i).time(1).GPSWeek, ObsData(i).time(1).GPST-rec_clk, ObsData(i).svObs(j).svPRN, ...
+                data_(j,:) = [i, ObsData(i).time(1).GPSWeek, ObsData(i).time(1).GPST, ObsData(i).svObs(j).svPRN, ...
                     L_noclk(end), Xs,Ys,Zs, rate, rate_clock,Xsvel, Ysvel, Zsvel,ele, ObsData(i).svObs(j).measurements(S1C), LV_(end)];
                 
                 %%%%%%Store data end%%%%%%%%

@@ -99,30 +99,29 @@ H_matrix(4:6,4:6) = -eye(3);
 delta_z(1:3,1) = GNSS_r_eb_e -est_r_eb_e_old;
 delta_z(4:6,1) = GNSS_v_eb_e -est_v_eb_e_old;
 
-% IAE-KF
-% IAE.K0 = 50;IAE.K1 = 120; MGain = eye(6);
-% StdInno=delta_z./sqrt(diag(H_matrix *P_matrix_propagated * H_matrix' + R_matrix));
-% index_outlier=find(abs(StdInno>IAE.K1));
-% if ~isempty(index_outlier)
-%     MGain(index_outlier,index_outlier)=1e4*eye(length(index_outlier));
-% end
-% index_buffer=find(abs(StdInno)>IAE.K0&abs(StdInno)<=IAE.K1);
-% if ~isempty(index_buffer)
-%     MGain(index_buffer,index_buffer)=(IAE.K1-IAE.K0)^2/IAE.K0*...
-%         diag(abs(StdInno(index_buffer))./((IAE.K1*ones(length(index_buffer),1)-abs(StdInno(index_buffer)))...
-%         .*(IAE.K1*ones(length(index_buffer),1)-abs(StdInno(index_buffer)))));
-% end
-% R_matrix=MGain*R_matrix;
-% K_matrix = P_matrix_propagated * H_matrix' /(H_matrix * P_matrix_propagated * H_matrix' + R_matrix);
-
 % 7. Set-up measurement noise covariance matrix assuming all components of
 % GNSS position and velocity are independent and have equal variance.
-if (FIXFlag == 2)%RTK folat  && norm(GNSS_v_eb_e)<20
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 100;
+if (FIXFlag == 3)%RTK folat  && norm(GNSS_v_eb_e)<20
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 3000000;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
-    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 5;
-else
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
+elseif FIXFlag == 4%Low speed correction
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 500;
+    R_matrix(1:3,4:6) = zeros(3);
+    R_matrix(4:6,1:3) = zeros(3);
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
+elseif FIXFlag == 5%GNSS vel jump detect
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 40;
+    R_matrix(1:3,4:6) = zeros(3);
+    R_matrix(4:6,1:3) = zeros(3);
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 100;
+elseif FIXFlag == 2 %Float
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 40;
+    R_matrix(1:3,4:6) = zeros(3);
+    R_matrix(4:6,1:3) = zeros(3);
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
+else%Fix
     R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);

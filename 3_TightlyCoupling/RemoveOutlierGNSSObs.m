@@ -53,7 +53,7 @@ for i=1:no_GNSS_meas
     delta_r =  GNSSObs(i,6:8)' - RecPosi; 
     range = sqrt(delta_r' * delta_r);
     u_as_e_T(i,1:3) = delta_r' / range;
-    RecClockRateAll(i,1)= GNSSObs(i,9) - GNSSObs(i,16) -u_as_e_T(i,1:3) * (GNSSObs(i,11:13)'- RecVelo);
+    RecClockRateAll(i,1)= GNSSObs(i,9)  -u_as_e_T(i,1:3) * (GNSSObs(i,11:13)'- RecVelo);%- GNSSObs(i,16)
 end
 RecClockRatePre=median(RecClockRateAll); 
 RecClockBias=GNSSObs(:,5)-...

@@ -177,7 +177,7 @@ while ~feof(fid)
             line = fgetl(fid);
             line = fgetl(fid);
         case 'J'
-            %svPRN = svPRN + 192;
+            svPRN = svPRN + 32;
             svPRNStr = num2str(svPRN,'QZSS%03d');
             navmsg.year  = real(str2doubleq(line(4:8)));
             navmsg.month = real(str2doubleq(line(9:11)));

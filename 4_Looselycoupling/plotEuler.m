@@ -1,6 +1,8 @@
 function plotEuler(IMU)
-addpath('D:\hfss model\MatlabCode\Tightly coupling program\iXR_GNSS-IMU_TightlyCouplingProgram-master\1_ReadIMU\Mechanization\lib');
-addpath('D:\hfss model\MatlabCode\Tightly coupling program\iXR_GNSS-IMU_TightlyCouplingProgram-master\1_ReadIMU\Mechanization\lib\rotation');
+% addpath('D:\hfss model\MatlabCode\Tightly coupling program\iXR_GNSS-IMU_TightlyCouplingProgram-master\1_ReadIMU\Mechanization\lib');
+% addpath('D:\hfss model\MatlabCode\Tightly coupling program\iXR_GNSS-IMU_TightlyCouplingProgram-master\1_ReadIMU\Mechanization\lib\rotation');
+addpath('F:\ExperienceData\IMUPaper\nav_matlab-master (1)\nav_matlab-master\lib');
+addpath('F:\ExperienceData\IMUPaper\nav_matlab-master (1)\nav_matlab-master\lib\rotation');
 %% 真实数据姿�?�纯积分
 
 gyroReading = (IMU(:,5:7) );

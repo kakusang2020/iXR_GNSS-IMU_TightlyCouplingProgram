@@ -122,12 +122,13 @@ while ~feof(fid)
     svObs = repmat(struct('constellation',[],'svPRN',[],'measurements',[]),[1,obsInfo.nSat]);
     for svIndex = 1:obsInfo.nSat
         line = fgetl(fid);
-        svObs(svIndex).svPRN = real(str2doubleq(line(2:3)));
+%         svObs(svIndex).svPRN = real(str2doubleq(line(2:3)));
         constellation = line(1);
         switch constellation
             case 'G'
                 svObs(svIndex).constellation = 'GPS';
                 nMeasurements = size(headerData.obsType.GPS,2);
+                svObs(svIndex).svPRN = real(str2doubleq(line(2:3)));
             case 'C'
                 svObs(svIndex).constellation = 'BEIDOU';
                 nMeasurements = size(headerData.obsType.BEIDOU,2);
@@ -140,6 +141,7 @@ while ~feof(fid)
             case 'J'
                 svObs(svIndex).constellation = 'QZSS';
                 nMeasurements = size(headerData.obsType.QZSS,2);
+                svObs(svIndex).svPRN = real(str2doubleq(line(2:3))) + 32;
             case 'S'
                 svObs(svIndex).constellation = 'SBAS';
                 nMeasurements = size(headerData.obsType.SBAS,2);
