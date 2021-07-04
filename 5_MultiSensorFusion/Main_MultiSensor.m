@@ -126,108 +126,108 @@ for k =find(round(IMUData(:,1),2)==round(stime,2)):find(round(IMUData(:,1),2)==r
     end
     
     %%     gnsscompass=rem(gnsscompass*0.0175+1*pi,2*pi);
-%         if ~isempty(gnsspos)  &&  ~isempty(gnssvel) &&  ~isempty(gnsscompass) && (gnsscompass>0.3 || gnsscompass<2*pi-0.3)%pos vel and att update
-%             y = [gnsspos';gnssvel';[0;0;(gnsscompass)]];
-%             H = [eye(3) zeros(3,3) zeros(3,9)
-%                 zeros(3,3) eye(3)  zeros(3,9)
-%                 zeros(3,6) eye(3)  zeros(3,6)];
-%             % Adaptive R
-%             if abs(gnsspos(3) - heightlist(end)) >5
-%                 settings.sigma_gpspos = 0.001/sqrt(3)*10 * abs(gnsspos(3) - heightlist(end));
-%             elseif Fixflag ==2
-%                 settings.sigma_gpspos = 0.001/sqrt(3)*10 ;
-%             elseif Fixflag ==1
-%                 settings.sigma_gpspos = 0.001/sqrt(3);
-%             end
-%             if Fixflag ==1 && abs(gnsspos(3) - heightlist(end)) <1 %remove air pressure bias
-%                 heightlist(end)=gnsspos(3);
-%             end
-%             if carSpeed(5)<3 %low speed correction
-%                 settings.sigma_gpspos = 0.001/sqrt(3)*500;
-%                 y(4:6)=y(4:6).*carSpeed(5)/norm(y(4:6));
-%             end
-%             %             if k>1        4000
-%             %                 if abs(x(1:3)-outdata.x(2:4,k-1))>carSpeed(2)*1.3
-%             %                 settings.sigma_gpspos = 0.001/sqrt(3)*500;
-%             %                 end
-%             %             end
-%             if norm(x(4:6))>carSpeed(5)*1.3
-%                 settings.sigma_gpsvel = 0.001/sqrt(3)*100;
-%             end
-%             R = [settings.sigma_gpspos^2*eye(3) zeros(3) zeros(3)
-%                 zeros(3) settings.sigma_gpsvel^2*eye(3) zeros(3)
-%                 zeros(3) zeros(3) settings.sigma_gpsatt^2*eye(3)];
-%             K=(P*H')/(H*P*H'+R);
-%             att=ch_q2eul(x(7:10));
-%             att(3)=rem(att(3)-y(9),2*pi);
-%             z_=y - [x(1:6);att];
-%             z_(9)=att(3);
-%             z = [zeros(9,1); delta_u] + K*z_;
-%             z_(9)
-%%             updateflag = 1;
-        if ~isempty(gnsspos)  &&  ~isempty(gnssvel) && mod(k-13585,300)==0% &&  ~isempty(gnsscompass)%vel and att update
-            if Fixflag ==2 && nsat <= 10
-            else
-                y = [gnsspos';gnssvel'];
-%                 debug=[debug;IMUData(k,1),y',x(1:6)',u_h(1:3)',norm(gnssvel),carSpeed(5)];
-                H = [   eye(3) zeros(3,3) zeros(3,9)
-                    zeros(3,3) eye(3) zeros(3,9)];
-                %% Adaptive R
-                if abs(gnsspos(3) - heightlist(end,2)) >5
-                    settings.sigma_gpspos = 0.001/sqrt(3)*10 * abs(gnsspos(3) - heightlist(end,2));
-                elseif Fixflag ==2
-                    settings.sigma_gpspos = 0.001/sqrt(3)*10 ;
-                elseif Fixflag ==1
-                    settings.sigma_gpspos = 0.001/sqrt(3);
-                end
-                if carSpeed(5)<3 %&& Fixflag ==2%low speed correction
-                    settings.sigma_gpspos = 0.001/sqrt(3)*50;
-                    y(4:6)=y(4:6).*carSpeed(5)/norm(y(4:6));
-                end
-                if Fixflag ==1 && abs(gnsspos(3) - heightlist(end,2)) <1 %remove air pressure bias
-                    heightlist(end,2)=gnsspos(3);
-                end
-                %% KF
-                R = [settings.sigma_gpspos^2*eye(3) zeros(3)
-                    zeros(3) settings.sigma_gpsvel^2*eye(3)];
-                K=(P*H')/(H*P*H'+R);
-                z = [zeros(9,1); delta_u] + K*(y - x(1:6));
-                updateflag = 2;
+    %         if ~isempty(gnsspos)  &&  ~isempty(gnssvel) &&  ~isempty(gnsscompass) && (gnsscompass>0.3 || gnsscompass<2*pi-0.3)%pos vel and att update
+    %             y = [gnsspos';gnssvel';[0;0;(gnsscompass)]];
+    %             H = [eye(3) zeros(3,3) zeros(3,9)
+    %                 zeros(3,3) eye(3)  zeros(3,9)
+    %                 zeros(3,6) eye(3)  zeros(3,6)];
+    %             % Adaptive R
+    %             if abs(gnsspos(3) - heightlist(end)) >5
+    %                 settings.sigma_gpspos = 0.001/sqrt(3)*10 * abs(gnsspos(3) - heightlist(end));
+    %             elseif Fixflag ==2
+    %                 settings.sigma_gpspos = 0.001/sqrt(3)*10 ;
+    %             elseif Fixflag ==1
+    %                 settings.sigma_gpspos = 0.001/sqrt(3);
+    %             end
+    %             if Fixflag ==1 && abs(gnsspos(3) - heightlist(end)) <1 %remove air pressure bias
+    %                 heightlist(end)=gnsspos(3);
+    %             end
+    %             if carSpeed(5)<3 %low speed correction
+    %                 settings.sigma_gpspos = 0.001/sqrt(3)*500;
+    %                 y(4:6)=y(4:6).*carSpeed(5)/norm(y(4:6));
+    %             end
+    %             %             if k>1        4000
+    %             %                 if abs(x(1:3)-outdata.x(2:4,k-1))>carSpeed(2)*1.3
+    %             %                 settings.sigma_gpspos = 0.001/sqrt(3)*500;
+    %             %                 end
+    %             %             end
+    %             if norm(x(4:6))>carSpeed(5)*1.3
+    %                 settings.sigma_gpsvel = 0.001/sqrt(3)*100;
+    %             end
+    %             R = [settings.sigma_gpspos^2*eye(3) zeros(3) zeros(3)
+    %                 zeros(3) settings.sigma_gpsvel^2*eye(3) zeros(3)
+    %                 zeros(3) zeros(3) settings.sigma_gpsatt^2*eye(3)];
+    %             K=(P*H')/(H*P*H'+R);
+    %             att=ch_q2eul(x(7:10));
+    %             att(3)=rem(att(3)-y(9),2*pi);
+    %             z_=y - [x(1:6);att];
+    %             z_(9)=att(3);
+    %             z = [zeros(9,1); delta_u] + K*z_;
+    %             z_(9)
+    %%             updateflag = 1;
+    if ~isempty(gnsspos)  &&  ~isempty(gnssvel) && mod(k-13585,300)==0% &&  ~isempty(gnsscompass)%vel and att update
+        if Fixflag ==2 && nsat <= 10
+        else
+            y = [gnsspos';gnssvel'];
+            %                 debug=[debug;IMUData(k,1),y',x(1:6)',u_h(1:3)',norm(gnssvel),carSpeed(5)];
+            H = [   eye(3) zeros(3,3) zeros(3,9)
+                zeros(3,3) eye(3) zeros(3,9)];
+            %% Adaptive R
+            if abs(gnsspos(3) - heightlist(end,2)) >5
+                settings.sigma_gpspos = 0.001/sqrt(3)*10 * abs(gnsspos(3) - heightlist(end,2));
+            elseif Fixflag ==2
+                settings.sigma_gpspos = 0.001/sqrt(3)*10 ;
+            elseif Fixflag ==1
+                settings.sigma_gpspos = 0.001/sqrt(3);
             end
-        elseif isempty(gnsspos) && ~isempty(gnssvel) %Velocity update
-            y = gnssvel';
-%             debug=[debug;IMUData(k,1),x(1:3)',y',x(1:6)'];
-            H = [zeros(3,3) eye(3) zeros(3,9)];
-            R = settings.sigma_gpsvel^2*eye(3);
+            if carSpeed(5)<3 %&& Fixflag ==2%low speed correction
+                settings.sigma_gpspos = 0.001/sqrt(3)*50;
+                y(4:6)=y(4:6).*carSpeed(5)/norm(y(4:6));
+            end
+            if Fixflag ==1 && abs(gnsspos(3) - heightlist(end,2)) <1 %remove air pressure bias
+                heightlist(end,2)=gnsspos(3);
+            end
+            %% KF
+            R = [settings.sigma_gpspos^2*eye(3) zeros(3)
+                zeros(3) settings.sigma_gpsvel^2*eye(3)];
             K=(P*H')/(H*P*H'+R);
-            z = [zeros(9,1); delta_u] + K*(y - x(4:6));
-            updateflag = 3;
+            z = [zeros(9,1); delta_u] + K*(y - x(1:6));
+            updateflag = 2;
+        end
+    elseif isempty(gnsspos) && ~isempty(gnssvel) %Velocity update
+        y = gnssvel';
+        %             debug=[debug;IMUData(k,1),x(1:3)',y',x(1:6)'];
+        H = [zeros(3,3) eye(3) zeros(3,9)];
+        R = settings.sigma_gpsvel^2*eye(3);
+        K=(P*H')/(H*P*H'+R);
+        z = [zeros(9,1); delta_u] + K*(y - x(4:6));
+        updateflag = 3;
     elseif  ~isempty(carSpeed) %&& IMUData(k,1)-time_last_GNSS>=settings.updatefreq%WSS update isempty(gnssvel) &&
         y = [carSpeed(5)*sin(heading);carSpeed(5)*cos(heading);0];
         x(1:3)=x(1:3)+y*dt;
         %         debug=[debug;IMUData(k,1),x(1:3)',y',x(1:6)',u_h(1:3)',carSpeed(2),carSpeed(2)];
-                H = [zeros(3,3) eye(3) zeros(3,9)];
-                R = settings.sigma_speed ^2*eye(3);
-                K=(P*H')/(H*P*H'+R);
-                z = [zeros(9,1); delta_u] + K*(y - x(4:6));
+        H = [zeros(3,3) eye(3) zeros(3,9)];
+        R = settings.sigma_speed ^2*eye(3);
+        K=(P*H')/(H*P*H'+R);
+        z = [zeros(9,1); delta_u] + K*(y - x(4:6));
         updateflag = 4;
     else
         updateflag = 0;
     end
     %% Correct the navigation states using current perturbation estimates.
-        if updateflag ~= 0
-            time_last_GNSS=IMUData(k,1);
-            % 位置速度反馈
-            x(1:6) = x(1:6) + z(1:6);
-            % 失准角反馈到姿态
-            q = x(7:10);
-            q = ch_qmul(ch_rv2q(z(7:9)), q);
-            x(7:10) = q;
-            delta_u = z(10:15);  %bias
-            %更新P 使用Joseph 形式，取代 (I-KH)*P, 这么数值运算更稳定
-            I_KH = (eye(size(P,1))-K*H);
-            P= I_KH*P*I_KH' + K*R*K';
-        end
+    if updateflag ~= 0
+        time_last_GNSS=IMUData(k,1);
+        % 位置速度反馈
+        x(1:6) = x(1:6) + z(1:6);
+        % 失准角反馈到姿态
+        q = x(7:10);
+        q = ch_qmul(ch_rv2q(z(7:9)), q);
+        x(7:10) = q;
+        delta_u = z(10:15);  %bias
+        %更新P 使用Joseph 形式，取代 (I-KH)*P, 这么数值运算更稳定
+        I_KH = (eye(size(P,1))-K*H);
+        P= I_KH*P*I_KH' + K*R*K';
+    end
     % Save the data to the output data structure
     outdata.x(a,:) = [IMUData(k,1),x',updateflag];
     outdata.eul(a,:) = [IMUData(k,1),ch_q2eul(x(7:10))',heading];%,rem(outdata.eul(a,4)-outdata.eul(a,5),2*pi)
