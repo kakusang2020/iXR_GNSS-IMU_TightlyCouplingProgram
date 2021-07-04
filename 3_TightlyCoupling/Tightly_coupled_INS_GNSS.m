@@ -15,38 +15,30 @@ function [out_profile,out_IMU_bias_est,out_clock,out_KF_SD,PickSubsetRes,RecCloc
 %           Column 1: epoch
 %           Column 2: Obsweek (GPS week)
 %           Column 3: Obssec (GPS second)
-%           Column 4: PRN (PRN=GPS_PRN=GLONASS_PRN+32=BDS_PRN+56)
-%           Column 5: Ionospheric Free pseudorange linear combination (m)
-%           Column 6: slant tropospheric delay (m)
-%           Column 7: Satellite clock error (code bias have been correted) (s)
-%           Column 8: relativity correction (m)
-%           Column 9-11: Satellite position in ECEF(Earth rotation correction have been made,ECEF at Receiving moment)(m)
-%           Column 12: range rate(m/s)
-%           Column 13: Rate of Satellite clock  (s/s)
-%           Column 14-16: Satellite velocity in ECEF(Earth rotation correction have been made,ECEF at Receiving moment)(m/s)
-%           Column 17: flag= 0 means this PRN was Removed in  GNSS Single point Least squares Solution
-%           Column 18: Elevation angle (deg)
-%           Column 19: Azimuth (deg)
-%           Column 20: user ranging error (By RTK solution) (m)
-%           Column 21: GNSS Single point Least squares Solution Residual (m)
-%           Column 22: a priori Pseudo-distance noise standard deviation (m)
-%           Column 23-24:signal strength of each frequency(dbHz)
-%           Column 25£ºIonosphere delay by KLOBUCHAR(if Available)(m)
+%           Column 4: PRN 
+%           Column 5: pseudorange (m)
+%           Column 6-8: Satellite position in ECEF(Earth rotation correction have been made,ECEF at Receiving moment)(m)
+%           Column 9: range rate(m/s)
+%           Column 10: Rate of Satellite clock  (s/s)
+%           Column 11-13: Satellite velocity in ECEF(Earth rotation correction have been made,ECEF at Receiving moment)(m/s)
+%           Column 14: Elevation angle (deg)
+%           Column 15-16:signal strength of each frequency(dbHz)
+%           Column 17£ºclock error rate (m/s)
 %   FilePath.INSFile    INS Obs File For Tightly_coupled_INS_GNSS
 %       % Format of INS observation array:
 %           Column 1: Obssec (GPS second)
-%           Column 2: gyroscope observation (Forward) (rad/s)
-%           Column 3: gyroscope observation (Right) (rad/s)
-%           Column 4: gyroscope observation (Down) (rad/s)
-%           Column 5: accelerometer observation (Forward) (m*s-2)
-%           Column 6: accelerometer observation (Right) (m*s-2)
-%           Column 7: accelerometer observation (Down) (m*s-2)
+%           Column 1: accelerometer observation (Forward) (m*s-2)
+%           Column 2: accelerometer observation (Right) (m*s-2)
+%           Column 3: accelerometer observation (Down) (m*s-2)
+%           Column 4: gyroscope observation (Forward) (rad/s)
+%           Column 5: gyroscope observation (Right) (rad/s)
+%           Column 6: gyroscope observation (Down) (rad/s)
 %   old_time,old_est_r_eb_e,old_est_v_eb_e,est_clock,attitude_ini 
 %       Initial alignment result
 %   GNSS_config 
-%       defined in INS_GNSS_Demo_7
+%       defined in Main_TC
 %   TC_KF_config
-%       defined in INS_GNSS_Demo_7
+%       defined in Main_TC
 %   L_ba_b
 %       The vector from the IMU center to the phase center of the GNSS antenna (forward, right, down)
 %   Total_GNSS_epoch
@@ -114,24 +106,38 @@ function [out_profile,out_IMU_bias_est,out_clock,out_KF_SD,PickSubsetRes,RecCloc
 
 %global STA
 STA.STA(1).Coor(1:3) = [-3961904.939,3348993.763,3698211.764];
-load(FilePath.GNSSFile);
-load(FilePath.INSFile);
-GNSSObs = GNSSTCData;
+GNSSObs=csvread(FilePath.GNSSFile);
+IMUData=csvread(FilePath.INSFile);
 GNSSObs(:,5) = GNSSObs(:,5);%+ GNSSObs(:,17);
 GNSSObs(:,3) = round(GNSSObs(:,3),1);
 % no_epochs = 42500;%only for 2020/11/05 data
-% R-F-D to F-R-D 
+%% Estelle R-F-D to F-R-D 
 % IMUData_ = IMUData;
-% IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:3000,2:7)); %remove bias
+% IMUData_(:,2:4) = IMUData_(:,2:4) ;%.* 9.7978
+% IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
+% IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:2000,2:7)); %remove bias
+% IMUData(:,1) = IMUData_(:,1) ;%+18
 % IMUData(:,3) = IMUData_(:,2);
 % IMUData(:,2) = IMUData_(:,3);
 % IMUData(:,4) = -IMUData_(:,4) -9.7978;
 % IMUData(:,6) = IMUData_(:,5);
 % IMUData(:,5) = IMUData_(:,6);
-% IMUData(:,7) = -IMUData(:,7) ;
-% IMU = IMUData;
-% [no_epochs,~]=size(IMU);
-% plotEuler(IMU(1:no_epochs,:));
+% IMUData(:,7) = -IMUData_(:,7) ;
+%% G370 imu body frame B-L-D to F-R-D
+IMUData_ = IMUData;
+IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
+IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(100:2000,2:7)); %remove bias
+IMUData(:,1) =  IMUData_(:,1);
+IMUData(:,2) = IMUData_(:,2);
+IMUData(:,3) = IMUData_(:,3);
+IMUData(:,4) = IMUData_(:,4) - 9.7978;
+IMUData(:,5) = IMUData_(:,5);
+IMUData(:,6) = IMUData_(:,6);
+IMUData(:,7) = IMUData_(:,7);
+
+IMU = IMUData(find(IMUData(:,1) == old_time):end,:);
+[no_epochs,~]=size(IMU);
+% plotEuler(IMU(1:no_epochs,:),0);
 no_epochs = find(IMU(:,1) == min(GNSSObs(end,3),IMU(end,1)));
 % no_epochs = round(no_epochs/1.75);
 c = 299792458;
@@ -264,10 +270,6 @@ for epoch = 2:no_epochs
             if ~isempty(index_BDS)
                 GNSSObs(index_GNSS(index_BDS),5)=GNSSObs(index_GNSS(index_BDS),5)-GNSS_config.ISBBDS_GPS;
             end
-%             if GNSSObs(index_GNSS,3) == 1.119062000000000e+05
-%                  TC_KF_config.RecClockPreprocOptions =2;
-% %                     est_clock = [-68969.4017-66.982952,333.279967];
-%             end
             %Screening of abnormal satellites (altitude cutoff angle, SNR, new information screening satellite)
             [index_elimi,RecClockPre,RecClockBias,Innovation,RecClockRateBias]=RemoveOutlierGNSSObs(est_r_ea_e_for_RecClockPre,...
                 est_v_ea_e_for_RecClockPre,GNSSObs(index_GNSS,:),est_clock,tor_s,TC_KF_config.RecClockPreprocOptions,GNSS_config);
@@ -439,7 +441,7 @@ for epoch = 2:no_epochs
                         -sin(est_lambda_b),cos(est_lambda_b),0;
                         cos(est_L_b)*cos(est_lambda_b),cos(est_L_b)*sin(est_lambda_b),sin(est_L_b)];
     NEU=Rotation*(out_profile(epoch,2:4)-STA.STA(1).Coor(1:3))';
-    out_profile(epoch,11:13)=NEU';
+    out_profile(epoch,11:13)=[NEU(2),NEU(1),NEU(3)]';
 
     % Reset old values
     old_time = time;

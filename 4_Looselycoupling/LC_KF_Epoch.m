@@ -102,7 +102,7 @@ delta_z(4:6,1) = GNSS_v_eb_e -est_v_eb_e_old;
 % 7. Set-up measurement noise covariance matrix assuming all components of
 % GNSS position and velocity are independent and have equal variance.
 if (FIXFlag == 3)%RTK folat  && norm(GNSS_v_eb_e)<20
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 3000000;
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 300000;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
@@ -112,17 +112,17 @@ elseif FIXFlag == 4%Low speed correction
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
 elseif FIXFlag == 5%GNSS vel jump detect
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 40;
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 5;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
-    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 100;
-elseif FIXFlag == 2 %Float
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 40;
+    R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 5000;
+elseif FIXFlag == 1 %Fix
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 * 1;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
-else%Fix
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2;
+else%Float
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 .* 50;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2;

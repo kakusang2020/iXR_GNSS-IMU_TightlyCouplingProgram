@@ -1,10 +1,11 @@
 %% Read RINEX
 clc,clear
-
+addpath('../Lib/GNSS_Tool_Lib');
+addpath('../Data/20201105');
 % First time read raw data
 % global ObsHead
 % global ObsData
-% gnssData = generateGnssData('rover2.obs','base.nav');
+% gnssData = generateGnssData('bds_car13120613.obs','bds_car13120613.nav');
 % ObsData = gnssData.obsData;
 % NavData = gnssData.navData;
 % ObsHead = gnssData.headerData.obsHeader;
@@ -171,4 +172,4 @@ for i=1:Epoch_Num
     Obs_Coor=[Obs_Coor;ApproCoor];  %Position (m)
     Obs_CoorV_=[Obs_CoorV_;ApproCoorV_]; %Velocity in X, Y, Z; (m/s)
 end
-plotCoor(Obs_Coor);
+% plotCoor(Obs_Coor);

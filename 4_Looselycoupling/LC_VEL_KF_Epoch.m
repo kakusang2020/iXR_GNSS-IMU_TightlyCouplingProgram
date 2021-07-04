@@ -1,5 +1,5 @@
 function [est_C_b_e_new,est_v_eb_e_new,est_r_eb_e_new,est_IMU_bias_new,...
-    P_matrix_new] = LC_VEL_KF_Epoch(CarSpeed,tor_s,...
+    P_matrix_new] = LC_VEL_KF_Epoch(v_eb_e,tor_s,...
     est_C_b_e_old,est_v_eb_e_old,est_r_eb_e_old,est_IMU_bias_old,...
     P_matrix_old,meas_f_ib_b,est_L_b_old,LC_KF_config,LC_KF_config_CarSpeed)
 %LC_KF_Epoch - Implements one cycle of the loosely coupled INS/GNSS
@@ -92,7 +92,7 @@ H_matrix = zeros(3,15);
 H_matrix(1:3,4:6) = -eye(3);
 % 6. Set-up measurement noise covariance matrix assuming all components of
 % GNSS position and velocity are independent and have equal variance.
-R_matrix(1:3,1:3) = eye(3) * LC_KF_config_CarSpeed^2 * 1;
+R_matrix(1:3,1:3) = eye(3) * LC_KF_config_CarSpeed^2 * 100;
 
 % 7. Calculate Kalman gain using (3.21)
 K_matrix = P_matrix_propagated * H_matrix' * inv(H_matrix *...
@@ -100,7 +100,7 @@ K_matrix = P_matrix_propagated * H_matrix' * inv(H_matrix *...
 
 % 8. Formulate measurement innovations using (14.102), noting that zero
 % lever arm is assumed here
-delta_z(1:3,1) = CarSpeed -est_v_eb_e_old;
+delta_z(1:3,1) = v_eb_e -est_v_eb_e_old;
 
 % 9. Update state estimates using (3.24)
 x_est_new = x_est_propagated + K_matrix * delta_z;
