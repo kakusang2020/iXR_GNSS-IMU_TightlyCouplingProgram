@@ -122,7 +122,7 @@ elseif FIXFlag == 1 %Fix
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2 * 1;
 else%Float
-    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 .* 50;
+    R_matrix(1:3,1:3) = eye(3) * LC_KF_config.pos_meas_SD^2 .* 80;
     R_matrix(1:3,4:6) = zeros(3);
     R_matrix(4:6,1:3) = zeros(3);
     R_matrix(4:6,4:6) = eye(3) * LC_KF_config.vel_meas_SD^2;

@@ -12,6 +12,7 @@ disp('max error is :');
 fprintf('%6.4f,%6.4f,%6.4f\n',max(abs(result(:,2)-result(:,5))),max(abs(result(:,3)-result(:,6))),max(abs(result(:,4)-result(:,7))));
 disp('mean error is :');
 fprintf('%6.4f,%6.4f,%6.4f\n',mean(result(:,2)-result(:,5)),mean(result(:,3)-result(:,6)),mean(result(:,4)-result(:,7)));
+
 figure;
 subplot(3,1,1);
 plot(result(:,1),result(:,2)-result(:,5),'LineWidth',4);

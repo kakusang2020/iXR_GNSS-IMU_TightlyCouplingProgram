@@ -22,9 +22,11 @@
 
 1_ReadIMU contains some tools about IMU internal parameter calibration and attitude alignment (not finished);
 
-2_ReadGNSS contains a singal point positioning, it can read RINEX 3.02 GNSS raw data, calculate the receiver position, velocity, clock error, clock rate error and other information for tightly coupling;
+2_ReadGNSS contains a singal point positioning, it can read RINEX 3.02 GNSS raw data, calculate the receiver position, velocity, clock error, clock rate error and other information for tightly coupling (Not include the Ionospheric delay);
 
-3_TightlyCoupling contains a GNSS/IMU tightly coupling program using persudo rang and persudo range rate, several Kalman filter methods for choose, now, only support GPS and QZSS.
+3_LooselyCoupling contains a GNSS/IMU loosely coupling program using GNSS position and velocity.
+
+4_TightlyCoupling contains a GNSS/IMU tightly coupling program using persudo rang and persudo range rate, several Kalman filter methods for choose, using GPS/QZSS/GALLO/BDS.
 
 ---
 
@@ -34,13 +36,7 @@
 
 Program start from Main.m file;
 
-GNSS data is GNSSTCData_GQ.mat, from "2_ReadGNSS" result;
-
 IMU data is IMUData.mat. Got from Estelle, body frame is R-F-D;
-
-Initial position and velocity is from RTK, receiver clock error and clock rate error is form "2_ReadGNSS" result,
-
-and the attitude is not accurate now.
 
 Data was taken in tsukishima by Tokyo university of marine science and technology.
 
@@ -48,7 +44,7 @@ Data was taken in tsukishima by Tokyo university of marine science and technolog
 
 ## Mention
 
-There is gross error in clock error calculation, so program can't run fully, you can set break points in "Tightly_coupled_INS_GNSS.m" line 248 and line 270.
+This code is for reference only : )
 
 ---
 
@@ -58,9 +54,11 @@ Hard ware:
 
 Track:
 
-<img src="./doc/tsukishimaTrack.jpg" width="70%"/>
+<img src="./doc/Tsukishima.jpg" width="70%"/>
 
+Result:
 
+<img src="./doc/1105 error table.jpg" width="70%"/>
 
 
 

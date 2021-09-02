@@ -36,10 +36,10 @@ settings.sigma_gyro_bias = deg2rad(0.00);
 
 % GNSS position measurement noise covariance (R)
 % Standard deviations, need to be squared
-settings.sigma_gpspos =0.01/sqrt(3); %[m]
+settings.sigma_gpspos =0.1/sqrt(3); %[m]
 settings.sigma_gpsvel =0.001/sqrt(3); %[m]
-settings.sigma_gpsatt =0.001/sqrt(3); %[m]
-settings.sigma_speed = 0.1; %[m/s]  Trim her
+settings.sigma_gpsatt =0.01/sqrt(3); %[m]
+settings.sigma_speed = 1; %[m/s]  Trim her
 %settings.sigma_speed = 24; %[m/s]  Trim here
 settings.sigma_non_holonomic = 20; %[m/s] Trim here
 %settings.sigma_non_holonomic = 3; %[m/s] Trim here

@@ -105,6 +105,7 @@ function [out_profile,out_IMU_bias_est,out_clock,out_KF_SD,PickSubsetRes,RecCloc
 % Begins
 
 %global STA
+addpath(FilePath.Route);
 STA.STA(1).Coor(1:3) = [-3961904.939,3348993.763,3698211.764];
 GNSSObs=csvread(FilePath.GNSSFile);
 IMUData=csvread(FilePath.INSFile);
@@ -112,28 +113,34 @@ GNSSObs(:,5) = GNSSObs(:,5);%+ GNSSObs(:,17);
 GNSSObs(:,3) = round(GNSSObs(:,3),1);
 % no_epochs = 42500;%only for 2020/11/05 data
 %% Estelle R-F-D to F-R-D 
-% IMUData_ = IMUData;
-% IMUData_(:,2:4) = IMUData_(:,2:4) ;%.* 9.7978
-% IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
-% IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(500:2000,2:7)); %remove bias
-% IMUData(:,1) = IMUData_(:,1) ;%+18
-% IMUData(:,3) = IMUData_(:,2);
-% IMUData(:,2) = IMUData_(:,3);
-% IMUData(:,4) = -IMUData_(:,4) -9.7978;
-% IMUData(:,6) = IMUData_(:,5);
-% IMUData(:,5) = IMUData_(:,6);
-% IMUData(:,7) = -IMUData_(:,7) ;
-%% G370 imu body frame B-L-D to F-R-D
-IMUData_ = IMUData;
-IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
-IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(100:2000,2:7)); %remove bias
-IMUData(:,1) =  IMUData_(:,1);
-IMUData(:,2) = IMUData_(:,2);
-IMUData(:,3) = IMUData_(:,3);
-IMUData(:,4) = IMUData_(:,4) - 9.7978;
-IMUData(:,5) = IMUData_(:,5);
-IMUData(:,6) = IMUData_(:,6);
-IMUData(:,7) = IMUData_(:,7);
+if strfind(FilePath.INSFile,'Estelle')
+    IMUData_ = IMUData;
+    IMUData_(:,2:4) = IMUData_(:,2:4) ;%.* 9.7978
+    IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
+    IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(100:4000,2:7)); %remove bias
+    IMUData(:,1) = IMUData_(:,1) ;%+18
+    IMUData(:,3) = IMUData_(:,2);
+    IMUData(:,2) = IMUData_(:,3);
+    IMUData(:,4) = -IMUData_(:,4) -9.7978;
+    IMUData(:,6) = IMUData_(:,5);
+    IMUData(:,5) = IMUData_(:,6);
+    IMUData(:,7) = -IMUData_(:,7) ;
+    %% G370 imu body frame B-L-D to F-R-D
+elseif strfind(FilePath.INSFile,'G370')
+    IMUData_ = IMUData;
+    IMUData_(:,5:7) = IMUData_(:,5:7)./180*pi;
+    IMUData_(:,2:7) = IMUData_(:,2:7) - mean(IMUData_(100:3000,2:7)); %remove bias
+    IMUData(:,1) =  IMUData_(:,1);
+    IMUData(:,2) = -IMUData_(:,2);
+    IMUData(:,3) = -IMUData_(:,3);
+    IMUData(:,4) = -IMUData_(:,4) - 9.7978;
+    IMUData(:,5) = IMUData_(:,5);
+    IMUData(:,6) = IMUData_(:,6);
+    IMUData(:,7) = IMUData_(:,7);
+else
+    disp('INS file name not correct!');
+    return
+end
 
 IMU = IMUData(find(IMUData(:,1) == old_time):end,:);
 [no_epochs,~]=size(IMU);
@@ -258,7 +265,7 @@ for epoch = 2:no_epochs
         index_GNSS=find(round(GNSSObs(:,3),1)==round(time,1)&~ismember(GNSSObs(:,4),GNSS_config.omit));
         no_GNSS_meas=length(index_GNSS);
         if no_GNSS_meas < 1
-            disp(['Time' num2str(time) 'GNSS Missing observation'])
+%             disp(['Time' num2str(time) 'GNSS Missing observation'])
         else
             GNSS_epoch = GNSS_epoch + 1;
             tor_s = round(time,1) - time_last_GNSS;  % KF time interval

@@ -1,5 +1,5 @@
 function [lat,lon,h]=XYZ2BLH(X,Y,Z)
-
+% function [pos]=XYZ2BLH(X,Y,Z)
 %将X、Y、Z转换成B、L、H
 
 %   X、Y、Z   点的空间直角坐标X、Y、Z,单位为m
@@ -26,5 +26,10 @@ while sum(dlat>elat) || sum(dh>eht)
 end
 lon=atan2(Y,X)*180/pi;
 lat=lat*180/pi;
-
+% pos= [lat,lon,h];
 end
+
+% LLH=out_profile;
+% for i =1:length(out_profile)
+%     [LLH(i,2),LLH(i,3),LLH(i,4)]=XYZ2BLH(out_profile(i,2),out_profile(i,3),out_profile(i,4));
+% end

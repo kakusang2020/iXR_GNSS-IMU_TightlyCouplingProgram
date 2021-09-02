@@ -1,26 +1,27 @@
 %% Read RINEX
 clc,clear
 addpath('../Lib/GNSS_Tool_Lib');
-addpath('../Data/20201105');
+addpath('../Data/20210412');
 % First time read raw data
-% global ObsHead
-% global ObsData
-% gnssData = generateGnssData('bds_car13120613.obs','bds_car13120613.nav');
+global ObsHead
+global ObsData
+global NavData
+% gnssData = generateGnssData('rover.obs','base.nav');
 % ObsData = gnssData.obsData;
 % NavData = gnssData.navData;
 % ObsHead = gnssData.headerData.obsHeader;
 
 % Already read and saved the data
-global ObsHead
-global ObsData
-global NavData
-load('ObsData_GQ_L1.mat');
-load('ObsHead_GQ_L1.mat');
-load('NavData_GQ_L1.mat');
+% global ObsHead
+% global ObsData
+% global NavData
+load('ObsData0412.mat');
+load('ObsHead0412.mat');
+load('NavData0412.mat');
 
-
+BaseCoor=[-3961905.0100,3348993.7800,3698211.8200];
 ApproCoor = [-3961909.5034  ,3348998.9979  ,3698217.0898 ];   %init receiver position
-ApproCoorV_ = [0.064726,	-0.051345,	-0.021533]; %init receiver velocity
+ApproCoorV_ = [0,	0,	0]; %init receiver velocity
 
 c = 299792458;   % Velocity of light
 lambda1 = 0.1902936728;

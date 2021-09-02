@@ -5,7 +5,7 @@ addpath('F:\ExperienceData\IMUPaper\nav_matlab-master (1)\nav_matlab-master\lib\
 
 gyroReading = -(IMU(:,5:7) );
 gyroReading(:,3) = -gyroReading(:,3);
-dt = 0.02; %姿态更新周期: 0.01s = 100Hz
+dt = 0.01; %姿态更新周期: 0.01s = 100Hz
 N = length(gyroReading); % 总数据量
 
 eul = zeros(N, 3);
@@ -33,5 +33,5 @@ plot(IMU(:,1),eul+heading);
 legend("PITCH(deg)", "ROLL(deg)", "YAW(deg)");
 
 tmp =eul(end,:);
-fprintf("最终欧拉角: pitch:%.4f° roll:%.4f° yaw:%.4f°\n", tmp(1), tmp(2), tmp(3));
+fprintf("Euler angle in the end is: pitch:%.4f° roll:%.4f° yaw:%.4f°\n", tmp(1), tmp(2), tmp(3));
 end
