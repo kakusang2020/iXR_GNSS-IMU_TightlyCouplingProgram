@@ -20,13 +20,11 @@
 
 ## Usage catalog
 
-1_ReadIMU contains some tools about IMU internal parameter calibration and attitude alignment (not finished);
+1_ReadGNSS contains a singal point positioning, it can read RINEX 3.02 GNSS raw data, calculate the receiver position, velocity, clock error, clock rate error and other information for tightly coupling (Not include the Ionospheric delay);
 
-2_ReadGNSS contains a singal point positioning, it can read RINEX 3.02 GNSS raw data, calculate the receiver position, velocity, clock error, clock rate error and other information for tightly coupling (Not include the Ionospheric delay);
+2_LooselyCoupling contains a GNSS/IMU loosely coupling program using GNSS position and velocity;
 
-3_LooselyCoupling contains a GNSS/IMU loosely coupling program using GNSS position and velocity.
-
-4_TightlyCoupling contains a GNSS/IMU tightly coupling program using persudo rang and persudo range rate, several Kalman filter methods for choose, using GPS/QZSS/GALLO/BDS.
+3_TightlyCoupling contains a GNSS/IMU tightly coupling program using persudo rang and persudo range rate, several Kalman filter methods for choose, using GPS/QZSS/GALLO/BDS.
 
 ---
 
@@ -34,7 +32,7 @@
 
 ## Data for tightly coupling
 
-Program start from Main.m file;
+Program start from Main_*.m file;
 
 IMU data is IMUData.mat. Got from Estelle, body frame is R-F-D;
 
@@ -50,7 +48,7 @@ This code is for reference only : )
 
 Hard ware:
 
-<img src="./doc/IMU.png" width="70%"/>
+<img src="./doc/Setting.jpg" width="70%"/>
 
 Track:
 
